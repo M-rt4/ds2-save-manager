@@ -317,7 +317,20 @@ const en = {
   'about.credit.bindertool': 'Decrypting the game\'s archives and regulation file.',
   'about.credit.paramdex': 'Definitions of the game\'s parameter tables.',
   'about.assets': 'The menu font and the item icons are made from Dark Souls II\'s own files; their designs belong to FromSoftware / Bandai Namco. EB Garamond and Cinzel (SIL Open Font License) are bundled as fallbacks.',
-  'about.trademark': 'Dark Souls is a trademark of Bandai Namco Entertainment / FromSoftware. This project is not affiliated with or endorsed by them.'
+  'about.trademark': 'Dark Souls is a trademark of Bandai Namco Entertainment / FromSoftware. This project is not affiliated with or endorsed by them.',
+
+  'stats.none': 'The game data holds no stats for this item.',
+  'stats.attack': 'Attack',
+  'stats.reduction': 'Damage reduction',
+  'stats.requirements': 'Requirements and bonus',
+  'stats.bonus': 'Parameter bonus: how much each attribute adds to this weapon\'s attack',
+  'stats.equipment': 'Equipment',
+  'stats.defense': 'Defense',
+  'stats.resistance': 'Resistance',
+  'stats.spell': 'Spell',
+  'stats.uses': 'Uses by attunement',
+  'stats.infusion': 'An infusion changes these values; they are shown for the item without it.',
+  'stats.show': 'Show stats'
 } as const;
 
 export type Key = keyof typeof en;
@@ -636,7 +649,20 @@ const tr: Record<Key, string> = {
   'about.credit.bindertool': 'Oyunun arşivlerini ve regulation dosyasını çözme.',
   'about.credit.paramdex': 'Oyunun parametre tablolarının tanımları.',
   'about.assets': 'Menü yazı tipi ve eşya ikonları Dark Souls II\'nin kendi dosyalarından üretildi; tasarımları FromSoftware / Bandai Namco\'ya aittir. Yedek olarak EB Garamond ve Cinzel (SIL Open Font License) paketlenir.',
-  'about.trademark': 'Dark Souls, Bandai Namco Entertainment / FromSoftware\'in ticari markasıdır. Bu proje onlarla bağlantılı değildir ve onlar tarafından onaylanmamıştır.'
+  'about.trademark': 'Dark Souls, Bandai Namco Entertainment / FromSoftware\'in ticari markasıdır. Bu proje onlarla bağlantılı değildir ve onlar tarafından onaylanmamıştır.',
+
+  'stats.none': 'Oyun verisinde bu eşyanın statları yok.',
+  'stats.attack': 'Saldırı',
+  'stats.reduction': 'Hasar azaltma',
+  'stats.requirements': 'Gereksinim ve bonus',
+  'stats.bonus': 'Parametre bonusu: her niteliğin bu silahın saldırısına ne kadar eklediği',
+  'stats.equipment': 'Ekipman',
+  'stats.defense': 'Savunma',
+  'stats.resistance': 'Direnç',
+  'stats.spell': 'Büyü',
+  'stats.uses': 'Attunement\'a göre kullanım',
+  'stats.infusion': 'Infusion bu değerleri değiştirir; burada eşyanın infusion\'sız hali gösteriliyor.',
+  'stats.show': 'Statları göster'
 };
 
 export type Lang = 'tr' | 'en';

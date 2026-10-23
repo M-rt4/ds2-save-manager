@@ -4,6 +4,7 @@ import { useStore } from '../store';
 import { useT, type Key } from '../i18n';
 import { CategoryIcon, Cross, ItemIcon, Plus } from './icons';
 import { AddItemView } from './AddItemDialog';
+import { ItemDetail } from './ItemDetail';
 import { CATEGORY_ORDER } from '../game';
 
 export function InventoryTab({ character }: { character: CharacterView }) {
@@ -11,6 +12,8 @@ export function InventoryTab({ character }: { character: CharacterView }) {
   const [cat, setCat] = useState<Category | 'all'>('all');
   const [query, setQuery] = useState('');
   const [adding, setAdding] = useState(false);
+  // The record whose stats are open under its row, by its offset in the save.
+  const [open, setOpen] = useState<number | null>(null);
   const inv = character.inventory;
 
   const counts = useMemo(() => {
@@ -57,7 +60,13 @@ export function InventoryTab({ character }: { character: CharacterView }) {
         <div className="inv-list">
           {sorted.length === 0 && <p className="empty-note">{t('inv.empty')}</p>}
           {sorted.map((i) => (
-            <ItemRow key={i.offset} item={i} editable={character.layoutOk} />
+            <ItemRow
+              key={i.offset}
+              item={i}
+              editable={character.layoutOk}
+              open={open === i.offset}
+              onToggle={() => setOpen(open === i.offset ? null : i.offset)}
+            />
           ))}
           {(cat === 'key' || cat === 'gesture') && <p className="note" style={{ padding: '0 18px' }}>{t('inv.readOnly')}</p>}
         </div>
@@ -66,7 +75,7 @@ export function InventoryTab({ character }: { character: CharacterView }) {
   );
 }
 
-function ItemRow({ item, editable }: { item: Item; editable: boolean }) {
+function ItemRow({ item, editable, open, onToggle }: { item: Item; editable: boolean; open: boolean; onToggle: () => void }) {
   const t = useT();
   const edit = useStore((s) => s.editInventory);
   const [qty, setQty] = useState<string | null>(null);
@@ -90,37 +99,58 @@ function ItemRow({ item, editable }: { item: Item; editable: boolean }) {
     item.category === 'unknown' ? `id ${item.id}` : null
   ].filter(Boolean);
 
+  const onKey = (e: React.KeyboardEvent) => {
+    if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
+      e.preventDefault();
+      onToggle();
+    }
+  };
+
   return (
-    <div className="row item" role="listitem">
-      <ItemIcon icon={item.icon} category={item.category} />
-      <span className="nm">
-        {item.infusion && <span className="inf">{item.infusion} </span>}
-        {item.name}
-        {item.reinforcement > 0 && <span className="plus">+{item.reinforcement}</span>}
-        {detail.length > 0 && <span className="detail">{detail.join(', ')}</span>}
-      </span>
-      <span className="actions">
-        {max !== null && !readOnly ? (
-          <input
-            className="field"
-            type="number"
-            min={1}
-            max={max}
-            value={qty ?? item.quantity ?? 0}
-            onChange={(e) => setQty(e.target.value)}
-            onBlur={() => void commit()}
-            onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-            aria-label={t('inv.quantity')}
-          />
-        ) : (
-          item.quantity !== null && item.category !== 'gesture' && item.category !== 'spell' && <span className="qty">{item.quantity}</span>
-        )}
-        {!readOnly && (
-          <button className="icon-btn" title={t('inv.remove')} onClick={() => void edit([{ op: 'remove', offset: item.offset }])}>
-            <Cross size={15} />
-          </button>
-        )}
-      </span>
-    </div>
+    <>
+      <div
+        className="row item"
+        role="listitem"
+        tabIndex={0}
+        aria-selected={open}
+        aria-expanded={open}
+        title={t('stats.show')}
+        onClick={onToggle}
+        onKeyDown={onKey}
+      >
+        <ItemIcon icon={item.icon} category={item.category} />
+        <span className="nm">
+          {item.infusion && <span className="inf">{item.infusion} </span>}
+          {item.name}
+          {item.reinforcement > 0 && <span className="plus">+{item.reinforcement}</span>}
+          {detail.length > 0 && <span className="detail">{detail.join(', ')}</span>}
+        </span>
+        <span className="actions" onClick={(e) => e.stopPropagation()}>
+          {max !== null && !readOnly ? (
+            <input
+              className="field"
+              type="number"
+              min={1}
+              max={max}
+              value={qty ?? item.quantity ?? 0}
+              onChange={(e) => setQty(e.target.value)}
+              onBlur={() => void commit()}
+              onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+              aria-label={t('inv.quantity')}
+            />
+          ) : (
+            item.quantity !== null && item.category !== 'gesture' && item.category !== 'spell' && <span className="qty">{item.quantity}</span>
+          )}
+          {!readOnly && (
+            <button className="icon-btn" title={t('inv.remove')} onClick={() => void edit([{ op: 'remove', offset: item.offset }])}>
+              <Cross size={15} />
+            </button>
+          )}
+        </span>
+      </div>
+      {open && (
+        <ItemDetail id={item.id} plus={item.reinforcement} infused={!!item.infusion} durability={item.durability} wide />
+      )}
+    </>
   );
 }

@@ -1733,3 +1733,109 @@ button.place:hover {
   min-height: 0;
   overflow-y: auto;
 }
+
+/* ---------- Item stats (the game's item screen) ---------- */
+
+.stats {
+  display: grid;
+  gap: 2px 24px;
+  width: 100%;
+  text-align: left;
+  font-size: 15px;
+}
+.stats.wide {
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  padding: 2px 20px 16px;
+  border-bottom: 1px solid var(--line-faint);
+}
+.stats[aria-busy] {
+  min-height: 40px;
+}
+.stats-type {
+  grid-column: 1 / -1;
+  color: var(--ash);
+  font-size: 14.5px;
+}
+.stats-sec h4 {
+  margin: 10px 0 2px;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--dim);
+}
+.stats-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 2px 2px;
+  border-bottom: 1px solid var(--line-faint);
+}
+.stats-row span {
+  color: var(--ash);
+}
+.stats-row b {
+  font-weight: 400;
+  color: var(--bone);
+}
+.stats-row.zero b {
+  color: var(--dim);
+}
+.stats.wide .stats-sec.full {
+  grid-column: 1 / -1;
+}
+.stats-reqs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 24px;
+}
+.stats-req,
+.stats-uses {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(30px, 1fr));
+  flex: 4 1 150px;
+  gap: 2px 4px;
+  padding: 4px 0;
+  text-align: center;
+}
+.stats-req.bonus {
+  grid-template-columns: repeat(6, minmax(26px, 1fr));
+  flex: 6 1 190px;
+}
+.stats-uses {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+.stats-req small,
+.stats-uses small {
+  display: block;
+  color: var(--dim);
+  font-size: 13px;
+}
+.stats-req b,
+.stats-uses b {
+  font-weight: 400;
+  color: var(--bone);
+}
+.stats-req.bonus b {
+  color: #e9cf9f;
+}
+.stats-effect {
+  grid-column: 1 / -1;
+  margin: 10px 0 0;
+  color: var(--bone);
+}
+.stats-note {
+  grid-column: 1 / -1;
+}
+.stats-desc {
+  grid-column: 1 / -1;
+  margin: 10px 0 0;
+  white-space: pre-line;
+  color: var(--ash);
+  font-size: 14.5px;
+  line-height: 1.5;
+}
+.stats-none {
+  padding: 0 20px 12px;
+}
+.add-detail .stats-none {
+  padding: 0;
+}
