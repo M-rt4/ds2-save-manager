@@ -11,6 +11,7 @@ pub mod disk;
 pub mod edition;
 pub mod error;
 pub mod file;
+pub mod games;
 pub mod header;
 pub mod inventory;
 pub mod items;

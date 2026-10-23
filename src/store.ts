@@ -5,6 +5,8 @@ import {
   type CharacterEdit,
   type CharacterView,
   type FoundSave,
+  gamesApi,
+  type GameInfo,
   type InventoryOp,
   type ItemDef,
   type SaveView
@@ -46,6 +48,8 @@ interface State {
   toasts: Toast[];
   confirm: Confirm | null;
   busy: boolean;
+  games: GameInfo[];
+  gamesLoaded: boolean;
 
   setLang: (lang: Lang) => void;
   t: (key: Key, vars?: Record<string, string | number>) => string;
@@ -64,6 +68,8 @@ interface State {
   fail: (e: unknown) => void;
   ask: (text: string, onYes: () => void) => void;
   closeConfirm: () => void;
+  refreshGames: () => Promise<void>;
+  setGames: (games: GameInfo[]) => void;
 }
 
 export function draftOf(c: CharacterView): Draft {
@@ -98,6 +104,8 @@ export const useStore = create<State>((set, get) => ({
   toasts: [],
   confirm: null,
   busy: false,
+  games: [],
+  gamesLoaded: false,
 
   setLang: (lang) => {
     try {
@@ -121,6 +129,7 @@ export const useStore = create<State>((set, get) => ({
   refreshSaves: async () => {
     const saves = await api.listSaves().catch(() => [] as FoundSave[]);
     set({ saves, savesLoaded: true });
+    void get().refreshGames();
   },
 
   openSave: async (path) => {
@@ -236,7 +245,14 @@ export const useStore = create<State>((set, get) => ({
   },
   fail: (e) => get().toast(errorText(get().lang, e), 'error'),
   ask: (text, onYes) => set({ confirm: { text, onYes } }),
-  closeConfirm: () => set({ confirm: null })
+  closeConfirm: () => set({ confirm: null }),
+
+  /** Installs and save locations; listed again whenever the saves are. */
+  refreshGames: async () => {
+    const games = await gamesApi.listGames().catch(() => [] as GameInfo[]);
+    set({ games, gamesLoaded: true });
+  },
+  setGames: (games) => set({ games, gamesLoaded: true })
 }));
 
 /** Whether anything is waiting to be written: in-memory edits or a status draft. */

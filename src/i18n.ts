@@ -168,7 +168,29 @@ const en = {
   'err.badAttribute': 'Attributes are between 1 and 99.',
   'err.layout': 'This character uses an unknown layout and can\'t be edited.',
 
-  'lang.switch': 'Türkçe'
+  'lang.switch': 'Türkçe',
+
+  'games.title': 'Games',
+  'games.savesRoot': 'Save folder, shared by both games',
+  'games.shared': 'Each account folder can hold one save of each game, under its own file name: {original} for Dark Souls II, {scholar} for Scholar of the First Sin.',
+  'games.install': 'Game folder',
+  'games.notFound': 'Not found on this PC.',
+  'games.exeMissing': 'DarkSoulsII.exe is no longer in this folder.',
+  'games.addFolder': 'Add a game folder',
+  'games.added': '{path} was added to {edition}.',
+  'games.notGameFolder': 'DarkSoulsII.exe is not in that folder or in its Game folder.',
+  'games.forget': 'Forget',
+  'games.source.steam': 'Steam',
+  'games.source.registry': 'Installed',
+  'games.source.manual': 'Added by hand',
+  'games.exeVersion': 'Game {v}',
+  'games.regulation': 'Regulation {v}',
+  'games.saves': 'Saves',
+  'games.noAccounts': 'No account folder yet. Start the game once to create one.',
+  'games.folder': 'Folder {name}',
+  'games.willWrite': 'Not created yet; the game writes it here on its first save.',
+  'games.noCharacters': 'No characters',
+  'games.unreadable': 'Can\'t be read: {msg}'
 } as const;
 
 export type Key = keyof typeof en;
@@ -338,7 +360,29 @@ const tr: Record<Key, string> = {
   'err.badAttribute': 'Nitelikler 1 ile 99 arasında olmalı.',
   'err.layout': 'Bu karakterin veri düzeni bilinmiyor; düzenlenemez.',
 
-  'lang.switch': 'English'
+  'lang.switch': 'English',
+
+  'games.title': 'Oyunlar',
+  'games.savesRoot': 'Kayıt klasörü, iki oyun için ortak',
+  'games.shared': 'Her hesap klasöründe iki oyunun da kendi dosya adıyla birer kaydı olabilir: Dark Souls II için {original}, Scholar of the First Sin için {scholar}.',
+  'games.install': 'Oyun klasörü',
+  'games.notFound': 'Bu bilgisayarda bulunamadı.',
+  'games.exeMissing': 'DarkSoulsII.exe artık bu klasörde değil.',
+  'games.addFolder': 'Oyun klasörü ekle',
+  'games.added': '{path}, {edition} altına eklendi.',
+  'games.notGameFolder': 'DarkSoulsII.exe bu klasörde de içindeki Game klasöründe de yok.',
+  'games.forget': 'Unut',
+  'games.source.steam': 'Steam',
+  'games.source.registry': 'Kurulu',
+  'games.source.manual': 'Elle eklendi',
+  'games.exeVersion': 'Oyun {v}',
+  'games.regulation': 'Regulation {v}',
+  'games.saves': 'Kayıtlar',
+  'games.noAccounts': 'Henüz hesap klasörü yok. Oyunu bir kez başlatınca oluşur.',
+  'games.folder': 'Klasör {name}',
+  'games.willWrite': 'Henüz yok; oyun ilk kaydında buraya yazar.',
+  'games.noCharacters': 'Karakter yok',
+  'games.unreadable': 'Okunamadı: {msg}'
 };
 
 export type Lang = 'tr' | 'en';
