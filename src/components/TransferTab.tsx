@@ -81,7 +81,7 @@ export function TransferTab({ doc }: { doc: SaveView }) {
 
   const singleReady = kind === 'single' && request.slot !== null;
   const blocked = plan?.blocked ?? null;
-  const ready = !!plan && !running && !store.gameRunning && !blocked && (kind === 'whole' || singleReady);
+  const ready = !!plan && !running && !store.gameRunning && !store.gameUnknown && !blocked && (kind === 'whole' || singleReady);
 
   const chooseTarget = async () => {
     const picked = await choosePath({ mode: 'save', defaultPath: targetPath, extensions: ['sl2'], filterName: 'Dark Souls II save' });
@@ -296,7 +296,11 @@ export function TransferTab({ doc }: { doc: SaveView }) {
           <button className="btn ember" disabled={!ready} onClick={run}>
             {kind === 'whole' ? t('transfer.runWhole', { file: fileOf(targetPath) }) : t('transfer.run')}
           </button>
-          {store.gameRunning && <span className="note" style={{ margin: 0 }}>{t('footer.gameRunning')}</span>}
+          {(store.gameRunning || store.gameUnknown) && (
+            <span className="note" style={{ margin: 0 }}>
+              {t(store.gameRunning ? 'footer.gameRunning' : 'footer.gameUnknown')}
+            </span>
+          )}
         </div>
       </div>
     </div>

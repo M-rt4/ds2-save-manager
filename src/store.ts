@@ -76,6 +76,8 @@ interface State {
   tab: Tab;
   draft: Draft | null;
   gameRunning: boolean;
+  /** The last check whether the game runs failed; writes stay off until one succeeds. */
+  gameUnknown: boolean;
   catalog: ItemDef[] | null;
   toasts: Toast[];
   confirm: Confirm | null;
@@ -142,6 +144,7 @@ export const useStore = create<State>((set, get) => ({
   tab: 'status',
   draft: null,
   gameRunning: false,
+  gameUnknown: false,
   catalog: null,
   toasts: [],
   confirm: null,
@@ -166,7 +169,13 @@ export const useStore = create<State>((set, get) => ({
     await get().refreshSaves();
     const first = get().saves[0];
     if (first) await get().openSave(first.path);
-    const poll = async () => set({ gameRunning: await api.gameRunning().catch(() => false) });
+    const poll = async () => {
+      try {
+        set({ gameRunning: await api.gameRunning(), gameUnknown: false });
+      } catch {
+        set({ gameRunning: false, gameUnknown: true });
+      }
+    };
     void poll();
     setInterval(poll, 4000);
   },
