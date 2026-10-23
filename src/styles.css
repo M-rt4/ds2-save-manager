@@ -2814,3 +2814,73 @@ body[data-pad] * {
 .chg-fields .to {
   color: var(--raised);
 }
+
+/* ---------- Loading screen ---------- */
+
+/* Its base (.boot, .boot-fire, .boot-word, .boot-sub) is in index.html, so the very first frame
+   has it; these are the parts only the app draws. It fills the window behind the title bar, just
+   where the first frame was, so nothing moves when the app takes over. */
+.app.booting .boot {
+  position: fixed;
+  inset: 0;
+}
+.app.booting .titlebar {
+  position: relative;
+  z-index: 1;
+}
+.boot-steps {
+  display: grid;
+  gap: 14px;
+  width: min(480px, 86vw);
+  margin: 30px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.boot-step {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: 10px;
+}
+/* The menu cursor's diamond: hollow while waiting, lit ember while working, bone once done. */
+.boot-mark {
+  width: 8px;
+  height: 8px;
+  margin: 7px 0 0 4px;
+  border: 1px solid var(--dim);
+  transform: rotate(45deg);
+}
+.boot-step[data-state='active'] .boot-mark {
+  background: var(--ember);
+  border-color: var(--ember);
+  box-shadow: 0 0 10px var(--ember);
+}
+.boot-step[data-state='done'] .boot-mark {
+  background: var(--bone);
+  border-color: var(--bone);
+}
+.boot-label {
+  font-size: 17px;
+  color: var(--bone);
+}
+.boot-step[data-state='waiting'] .boot-label {
+  color: var(--dim);
+}
+.boot-step[data-state='done'] .boot-label,
+.boot-step[data-state='none'] .boot-label {
+  color: var(--ash);
+}
+.boot-found {
+  margin-top: 2px;
+  font-size: 15.5px;
+  color: #e9e3d3;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .boot-step[data-state='active'] .boot-mark {
+    animation: boot-pulse 1.1s ease-in-out infinite;
+  }
+}
+@keyframes boot-pulse {
+  50% {
+    opacity: 0.4;
+  }
+}

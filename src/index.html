@@ -4,9 +4,123 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>DS2 Save Manager</title>
+    <style>
+      /* The first frame, drawn before the app's scripts and styles arrive: the same screen the
+         app keeps showing while it looks for the games and saves (LoadingScreen.tsx), so the
+         window never opens black and nothing jumps when the app takes over. */
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #07070a;
+        color: #ddd6c4;
+        font-family: 'EB Garamond', Georgia, serif;
+      }
+      #root {
+        height: 100%;
+      }
+      .boot {
+        display: grid;
+        place-content: center;
+        justify-items: center;
+        gap: 6px;
+        height: 100%;
+        background: radial-gradient(ellipse at 50% 62%, rgba(164, 70, 27, 0.16), transparent 55%), #07070a;
+        user-select: none;
+      }
+      .boot-fire {
+        width: 84px;
+        height: 84px;
+        margin-bottom: 10px;
+        filter: drop-shadow(0 0 18px rgba(255, 162, 69, 0.35));
+      }
+      .boot-word {
+        font-family: 'Cinzel', 'DS2 Menu', Georgia, serif;
+        font-weight: 600;
+        font-size: 30px;
+        letter-spacing: 0.22em;
+        color: #e9e3d3;
+      }
+      .boot-sub {
+        font-size: 18px;
+        color: #9c9586;
+      }
+      .boot-status {
+        margin-top: 26px;
+        font-size: 17px;
+        color: #9c9586;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .boot-fire > path:last-of-type {
+          transform-origin: 16px 29px;
+          animation: boot-flicker 1.6s ease-in-out infinite;
+        }
+      }
+      @keyframes boot-flicker {
+        0%,
+        100% {
+          transform: scale(1, 1);
+          opacity: 1;
+        }
+        45% {
+          transform: scale(0.94, 1.08);
+          opacity: 0.86;
+        }
+        70% {
+          transform: scale(1.04, 0.95);
+          opacity: 0.95;
+        }
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="boot">
+        <svg class="boot-fire" viewBox="0 0 32 32" aria-hidden="true">
+          <defs>
+            <radialGradient id="boot-glow" cx="50%" cy="85%" r="60%">
+              <stop offset="0" stop-color="#ffb054" stop-opacity="0.9" />
+              <stop offset="0.6" stop-color="#c2501a" stop-opacity="0.25" />
+              <stop offset="1" stop-color="#000" stop-opacity="0" />
+            </radialGradient>
+          </defs>
+          <circle cx="16" cy="22" r="12" fill="url(#boot-glow)" />
+          <path d="M16 3l1.3 3v15h-2.6V6z" fill="#e9e3d3" />
+          <path d="M14.7 9c3 .7 3 2-0 2.8-3 .8-3 2 0 2.8 3 .8 3 2 0 2.8" fill="none" stroke="#3a2a1c" stroke-width="0.9" />
+          <rect x="12.2" y="21" width="7.6" height="1.3" rx="0.5" fill="#cfc6b1" />
+          <path
+            d="M11 29c.6-2.6 2.4-3.3 2.6-5.3 1.2 1.6.8 3.1 1.9 4.2.3-1.9 1.5-2.7 1.8-4.1 1.4 2.1 2.4 3.8 1.5 5.2z"
+            fill="#ffa245"
+          />
+        </svg>
+        <div class="boot-word">DARK SOULS II</div>
+        <div class="boot-sub" data-tr="Kayıt Yöneticisi">Save Manager</div>
+        <div class="boot-status" data-tr="Yükleniyor…">Loading…</div>
+      </div>
+    </div>
+    <script>
+      // The language the app will pick (i18n.ts initialLang), before any of it has loaded.
+      (function () {
+        var lang = null;
+        try {
+          lang = localStorage.getItem('lang');
+        } catch (e) {}
+        if (lang !== 'tr' && lang !== 'en') lang = navigator.language.toLowerCase().indexOf('tr') === 0 ? 'tr' : 'en';
+        document.documentElement.lang = lang;
+        if (lang === 'tr') {
+          document.querySelectorAll('[data-tr]').forEach(function (el) {
+            el.textContent = el.getAttribute('data-tr');
+          });
+        }
+        // Release builds open their window hidden (main.rs) and show it once this frame is
+        // there to see, so it never appears as an empty black rectangle.
+        if ('%PROD%' === 'true' && window.__TAURI_INTERNALS__) {
+          setTimeout(function () {
+            window.__TAURI_INTERNALS__.invoke('plugin:window|show', { label: 'main' }).catch(function () {});
+          }, 0);
+        }
+      })();
+    </script>
     <script type="module" src="./main.tsx"></script>
   </body>
 </html>

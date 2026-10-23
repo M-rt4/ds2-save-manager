@@ -6,11 +6,13 @@ import { SlotList } from './components/SlotList';
 import { Detail } from './components/Detail';
 import { Footer } from './components/Footer';
 import { Overlays } from './components/Overlays';
+import { LoadingScreen } from './components/LoadingScreen';
 import { FileBrowser } from './components/FileBrowser';
 import { PadKeyboard } from './components/PadKeyboard';
 
 export function App() {
   const lang = useStore((s) => s.lang);
+  const boot = useStore((s) => s.boot);
 
   useEffect(() => {
     void useStore.getState().init();
@@ -32,6 +34,16 @@ export function App() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, []);
+
+  if (boot) {
+    return (
+      <div className="app booting">
+        <LoadingScreen boot={boot} />
+        <TitleBar />
+        <Overlays />
+      </div>
+    );
+  }
 
   return (
     <div className="app">
