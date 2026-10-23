@@ -7,6 +7,7 @@ mod commands_files;
 mod commands_games;
 mod conversion;
 mod commands_raw;
+mod commands_document;
 mod gamepad;
 
 use tauri::{WebviewUrl, WebviewWindowBuilder};
@@ -66,6 +67,11 @@ fn main() {
             commands_raw::raw_read,
             commands_raw::raw_write,
             commands_raw::raw_find,
+            commands_document::document_export,
+            commands_document::document_preview,
+            commands_document::document_apply,
+            commands_document::document_write_file,
+            commands_document::document_read_file,
             gamepad::gamepads,
             commands_files::browse_places,
             commands_files::list_dir,

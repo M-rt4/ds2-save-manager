@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { api, rawApi, type Chunk, type EntryInfo, type RawMatches, type SaveView } from '../api';
 import { draftEdit, useStore, type Tab } from '../store';
 import { useT } from '../i18n';
+import { JsonView } from './JsonView';
 
 const ROW = 16; // bytes per row
 const ROW_H = 21; // px
@@ -98,7 +99,9 @@ function chunkAt(chunks: Chunk[], o: number): Chunk | undefined {
 }
 
 export function RawTab({ doc }: { doc: SaveView }) {
+  const t = useT();
   const [accepted, setAccepted] = useState(false);
+  const [view, setView] = useState(lastView);
   const setTab = useStore((s) => s.setTab);
   if (!accepted) {
     return (
@@ -108,8 +111,24 @@ export function RawTab({ doc }: { doc: SaveView }) {
       </>
     );
   }
-  return <RawEditor doc={doc} />;
+  const pick = (v: typeof view) => setView((lastView = v));
+  return (
+    <div className="raw-shell">
+      <div className="raw-views seg" role="group">
+        <button aria-pressed={view === 'json'} onClick={() => pick('json')}>
+          {t('json.viewReadable')}
+        </button>
+        <button aria-pressed={view === 'bytes'} onClick={() => pick('bytes')}>
+          {t('json.viewBytes')}
+        </button>
+      </div>
+      {view === 'json' ? <JsonView doc={doc} /> : <RawEditor doc={doc} />}
+    </div>
+  );
 }
+
+/** The view last picked, kept while the app runs; the readable one comes first. */
+let lastView: 'json' | 'bytes' = 'json';
 
 /** Shown every time the tab opens; there is no "don't show again". */
 function RawWarning({ onAccept, onCancel }: { onAccept: () => void; onCancel: () => void }) {

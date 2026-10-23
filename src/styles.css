@@ -2391,3 +2391,235 @@ body[data-pad] * {
 .browser-name .field {
   flex: 1;
 }
+
+/* ---------- Raw data: readable (JSON) view ---------- */
+
+.raw-shell {
+  --mono: 'Cascadia Mono', 'Cascadia Code', Consolas, 'Courier New', monospace;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+.raw-shell > .panel-body {
+  flex: 1;
+}
+.raw-views {
+  align-self: flex-start;
+  margin: 10px 12px 0;
+}
+.json-view {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+.json-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 8px 16px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line-faint);
+}
+.json-help {
+  flex: 1 1 320px;
+  margin: 0;
+  color: var(--dim);
+  font-size: 13.5px;
+}
+.json-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.json-note {
+  margin: 8px 12px 0;
+  font-size: 14px;
+}
+
+.code {
+  display: grid;
+  grid-template-columns: 62px minmax(0, 1fr);
+  flex: 1;
+  min-height: 0;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  line-height: 19px;
+}
+.code-gutter {
+  position: relative;
+  overflow: hidden;
+  border-right: 1px solid var(--line-faint);
+  color: var(--dim);
+}
+.code-gutter > div {
+  position: relative;
+}
+.code-gutter .g {
+  position: absolute;
+  right: 0;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  width: 100%;
+  height: 19px;
+  padding-right: 2px;
+}
+.code-gutter .g.err .no {
+  color: var(--danger);
+}
+.code-gutter .no {
+  font-size: 11.5px;
+}
+.code-gutter .fold {
+  width: 16px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ash);
+  font-size: 11px;
+  line-height: 19px;
+  text-align: center;
+  cursor: pointer;
+}
+.code-gutter .fold:hover {
+  color: var(--bone);
+}
+.code-main {
+  position: relative;
+  overflow: hidden;
+}
+/* The text is typed in the textarea and seen on the layer under it, so both must lay out
+   every character in the same place. */
+.code-hl,
+.code-main textarea {
+  font: inherit;
+  line-height: 19px;
+  tab-size: 2;
+  white-space: pre;
+}
+.code-hl {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  color: var(--bone);
+}
+.code-hl .ln {
+  position: absolute;
+  height: 19px;
+}
+.code-hl .ln.err {
+  text-decoration: underline wavy var(--danger);
+  text-decoration-skip-ink: none;
+}
+.code-hl .k {
+  color: var(--ash);
+}
+.code-hl .s {
+  color: #e9cf9f;
+}
+.code-hl .n {
+  color: #9fc3d9;
+}
+.code-hl .lit {
+  color: var(--ember);
+}
+/* No padding or border: the mark must stay as wide as its characters in the textarea. */
+.code-hl .ph {
+  color: var(--dim);
+  background: rgba(236, 228, 206, 0.07);
+}
+.code-hl .p {
+  color: var(--dim);
+}
+.code-main textarea {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 6px 10px;
+  border: 0;
+  outline: none;
+  resize: none;
+  overflow: auto;
+  background: transparent;
+  color: transparent;
+  caret-color: var(--bone);
+  user-select: text;
+}
+.code-main textarea::selection {
+  background: rgba(124, 173, 240, 0.3);
+}
+.code-main textarea::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.code-main textarea::-webkit-scrollbar-thumb {
+  background: rgba(208, 199, 178, 0.18);
+}
+.code-main textarea::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+.json-diff {
+  max-height: 34%;
+  overflow-y: auto;
+  padding: 8px 12px 10px;
+  border-top: 1px solid var(--line-faint);
+}
+.json-state {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--ash);
+  font-size: 14.5px;
+}
+.json-list {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13.5px;
+}
+.json-list li {
+  padding: 2px 6px;
+  border-left: 2px solid transparent;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+.json-list li:hover {
+  background: rgba(236, 228, 206, 0.04);
+}
+.json-list li b {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--ash);
+}
+.json-list li .from {
+  color: var(--dim);
+}
+.json-list li .to {
+  color: var(--raised);
+}
+.json-list li.bad {
+  border-left-color: var(--danger);
+  color: #e8c0b4;
+}
+.json-list li.dim {
+  color: var(--dim);
+}
+.json-list li.head {
+  margin-top: 6px;
+  color: var(--dim);
+  cursor: default;
+}
+.json-list li.head:hover {
+  background: none;
+}
+.json-diff .note {
+  margin: 6px 0 0;
+}
