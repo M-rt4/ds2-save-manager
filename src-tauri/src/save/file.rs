@@ -1,4 +1,5 @@
 use super::bnd4::{self, Entry};
+use super::bytes::u64_at;
 use super::crypto;
 use super::edition::Edition;
 use super::error::{Result, SaveError};
@@ -86,15 +87,37 @@ impl SaveFile {
         Ok(Self { source_edition: edition, edition, raw, entries, blocks })
     }
 
-    /// The complete file, every entry encrypted with the key of `self.edition`.
+    /// The complete file, every entry encrypted with the key of `self.edition`. Entries keep
+    /// their place; when one changed size (see `set_block_data`) the entries are laid out
+    /// again back to back in index order, as the game writes them, and the entry table is
+    /// updated to match.
     pub fn encode(&self) -> Vec<u8> {
-        let mut out = self.raw.clone();
-        for (e, b) in self.entries.iter().zip(&self.blocks) {
-            let blob = crypto::encrypt(self.edition.key(), &b.iv, &b.plain);
-            assert_eq!(blob.len(), e.size, "re-encrypted entry {} changed size", e.index);
-            out[e.offset..e.offset + e.size].copy_from_slice(&blob);
+        let blobs: Vec<Vec<u8>> = self.blocks.iter().map(|b| crypto::encrypt(self.edition.key(), &b.iv, &b.plain)).collect();
+        if self.entries.iter().zip(&blobs).all(|(e, b)| e.size == b.len()) {
+            let mut out = self.raw.clone();
+            for (e, blob) in self.entries.iter().zip(&blobs) {
+                out[e.offset..e.offset + e.size].copy_from_slice(blob);
+            }
+            return out;
+        }
+        let data_start = self.entries.iter().map(|e| e.offset).min().unwrap_or(self.raw.len());
+        let entry_len = u64_at(&self.raw, 0x20) as usize;
+        let mut out = self.raw[..data_start].to_vec();
+        for (e, blob) in self.entries.iter().zip(&blobs) {
+            let header = bnd4::HEADER_LEN + e.index * entry_len;
+            let offset = out.len();
+            out[header + 8..header + 16].copy_from_slice(&(blob.len() as u64).to_le_bytes());
+            out[header + 16..header + 20].copy_from_slice(&(offset as u32).to_le_bytes());
+            out.extend_from_slice(blob);
         }
         out
+    }
+
+    /// Replaces a block's data with `data` of any length; `encode` re-lays the container.
+    pub fn set_block_data(&mut self, index: usize, data: &[u8]) {
+        let block = &mut self.blocks[index];
+        block.plain = crypto::wrap_payload(data);
+        block.len = data.len();
     }
 
     pub fn entries(&self) -> &[Entry] {

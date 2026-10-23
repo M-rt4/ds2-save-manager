@@ -6,20 +6,20 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
+use ds2save::save::backups::Reason;
 use ds2save::save::character::{self, Character, CharacterEdit, SlotSummary};
 use ds2save::save::disk::{self, FoundSave};
 use ds2save::save::file::{SaveFile, HEADER_ENTRY, SLOT_COUNT};
 use ds2save::save::items::{catalog, ItemDef};
-use ds2save::save::transfer::{self, Compatibility};
 use ds2save::save::{chunks, header, maps, Edition, SaveError};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use tauri::State;
 
-type CmdResult<T> = Result<T, SaveError>;
+pub(crate) type CmdResult<T> = Result<T, SaveError>;
 
-struct Doc {
+pub(crate) struct Doc {
     path: PathBuf,
-    save: SaveFile,
+    pub(crate) save: SaveFile,
     fingerprint: [u8; 16],
     dirty: bool,
 }
@@ -29,8 +29,25 @@ pub struct AppState {
     docs: Mutex<HashMap<String, Doc>>,
 }
 
+impl Doc {
+    pub(crate) fn new(path: PathBuf, save: SaveFile, fingerprint: [u8; 16]) -> Self {
+        Self { path, save, fingerprint, dirty: false }
+    }
+}
+
 impl AppState {
-    fn with_doc<T>(&self, id: &str, f: impl FnOnce(&mut Doc) -> CmdResult<T>) -> CmdResult<T> {
+    pub(crate) fn is_dirty(&self, id: &str) -> bool {
+        self.docs.lock().unwrap().get(id).is_some_and(|d| d.dirty)
+    }
+
+    /// Swaps in a freshly read copy of a save that is open in the app.
+    pub(crate) fn replace_if_open(&self, id: &str, doc: Doc) {
+        if let Some(open) = self.docs.lock().unwrap().get_mut(id) {
+            *open = doc;
+        }
+    }
+
+    pub(crate) fn with_doc<T>(&self, id: &str, f: impl FnOnce(&mut Doc) -> CmdResult<T>) -> CmdResult<T> {
         let mut docs = self.docs.lock().unwrap();
         let doc = docs.get_mut(id).ok_or_else(|| SaveError::new("notOpen", "That save is not open."))?;
         f(doc)
@@ -127,13 +144,13 @@ fn character_view(save: &SaveFile, slot: usize) -> CmdResult<CharacterView> {
     Ok(CharacterView { area: maps::area(character.map), map_label: maps::label(character.map), character })
 }
 
-fn read_save(path: &Path) -> CmdResult<(SaveFile, [u8; 16])> {
+pub(crate) fn read_save(path: &Path) -> CmdResult<(SaveFile, [u8; 16])> {
     let bytes = std::fs::read(path)?;
     let fingerprint = disk::fingerprint(&bytes);
     Ok((SaveFile::parse(bytes)?, fingerprint))
 }
 
-fn doc_id(path: &Path) -> String {
+pub(crate) fn doc_id(path: &Path) -> String {
     std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf()).to_string_lossy().into_owned()
 }
 
@@ -216,7 +233,7 @@ pub struct WriteReport {
     edition: Edition,
 }
 
-fn ensure_game_closed() -> CmdResult<()> {
+pub(crate) fn ensure_game_closed() -> CmdResult<()> {
     if disk::game_running() {
         return Err(SaveError::new("gameRunning", "Dark Souls II is running. Quit to the desktop first."));
     }
@@ -224,13 +241,13 @@ fn ensure_game_closed() -> CmdResult<()> {
 }
 
 /// Backs up whatever is at `path`, writes `save` there, and reads it back to prove it.
-fn write_checked(path: &Path, save: &SaveFile) -> CmdResult<(Option<PathBuf>, [u8; 16])> {
+pub(crate) fn write_checked(path: &Path, save: &SaveFile, reason: Reason) -> CmdResult<(Option<PathBuf>, [u8; 16])> {
     let bytes = save.encode();
     let reread = SaveFile::parse(bytes.clone())?;
     if reread.source_edition != save.edition || reread.checksum_failures().len() > save.checksum_failures().len() {
         return Err(SaveError::new("verify", "The encoded save did not read back correctly; nothing was written."));
     }
-    let backup = disk::backup(path)?;
+    let backup = disk::backup(path, reason)?;
     disk::write_atomic(path, &bytes)?;
     Ok((backup, disk::fingerprint(&bytes)))
 }
@@ -248,7 +265,7 @@ pub async fn write_save(state: State<'_, AppState>, id: String) -> CmdResult<Wri
                 ));
             }
         }
-        let (backup, fingerprint) = write_checked(&doc.path, &doc.save)?;
+        let (backup, fingerprint) = write_checked(&doc.path, &doc.save, Reason::Save)?;
         doc.fingerprint = fingerprint;
         doc.dirty = false;
         Ok(WriteReport {
@@ -270,150 +287,15 @@ pub async fn set_account(state: State<'_, AppState>, id: String, account: String
     })
 }
 
-#[derive(Deserialize, Clone, Copy, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
-pub enum ConversionMode {
-    /// Write the whole source, re-encrypted, as the target file.
-    Replace,
-    /// Keep the existing target file and replace its ten slots with the source's.
-    Merge,
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ConversionRequest {
-    source_id: String,
-    target_edition: Edition,
-    target_path: String,
-    mode: ConversionMode,
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ConversionPlan {
-    target_path: String,
-    target_exists: bool,
-    target_edition: Option<Edition>,
-    target_slots: Option<Vec<SlotView>>,
-    target_error: Option<SaveError>,
-    compatibility: Option<Compatibility>,
-    /// The account the written file will name, when it differs from the source's.
-    account_change: Option<(String, String)>,
-    target_open_and_dirty: bool,
-}
-
-fn target_account(path: &Path) -> Option<u64> {
-    path.parent().and_then(|p| p.file_name()).and_then(|f| disk::account_of_folder(&f.to_string_lossy()))
-}
-
-#[tauri::command]
-pub async fn plan_conversion(state: State<'_, AppState>, req: ConversionRequest) -> CmdResult<ConversionPlan> {
-    let source = state.with_doc(&req.source_id, |doc| Ok(doc.save.clone()))?;
-    let path = PathBuf::from(&req.target_path);
-    let target_exists = path.exists();
-    let (mut target_edition, mut target_slots, mut target_error, mut compatibility) = (None, None, None, None);
-    if target_exists {
-        match read_save(&path) {
-            Ok((t, _)) => {
-                target_edition = Some(t.source_edition);
-                target_slots = Some((0..SLOT_COUNT).map(|i| character::summary(&t, i).into()).collect());
-                compatibility = Some(transfer::compare(&source, &t));
-            }
-            Err(e) => target_error = Some(e),
+impl AppState {
+    /// Reads `path` again into the open save it belongs to, if one is open, dropping its
+    /// unsaved edits. Used after something else rewrote the file (restoring a backup).
+    pub fn reload_if_open(&self, path: &Path) -> CmdResult<()> {
+        let mut docs = self.docs.lock().unwrap();
+        if let Some(doc) = docs.get_mut(&doc_id(path)) {
+            let (save, fingerprint) = read_save(path)?;
+            *doc = Doc { path: doc.path.clone(), save, fingerprint, dirty: false };
         }
+        Ok(())
     }
-    let from = header::steam_id(source.block(HEADER_ENTRY));
-    let to = match req.mode {
-        ConversionMode::Merge => None,
-        ConversionMode::Replace => target_account(&path),
-    };
-    let account_change = match (from, to) {
-        (Some(a), Some(b)) if a != b => Some((a.to_string(), b.to_string())),
-        _ => None,
-    };
-    let target_open_and_dirty = state.docs.lock().unwrap().get(&doc_id(&path)).is_some_and(|d| d.dirty);
-    Ok(ConversionPlan {
-        target_path: path.to_string_lossy().into_owned(),
-        target_exists,
-        target_edition,
-        target_slots,
-        target_error,
-        compatibility,
-        account_change,
-        target_open_and_dirty,
-    })
-}
-
-#[tauri::command]
-pub async fn run_conversion(state: State<'_, AppState>, req: ConversionRequest) -> CmdResult<WriteReport> {
-    ensure_game_closed()?;
-    let source = state.with_doc(&req.source_id, |doc| Ok(doc.save.clone()))?;
-    let path = PathBuf::from(&req.target_path);
-    if doc_id(&path) == req.source_id && req.target_edition == source.source_edition {
-        return Err(SaveError::invalid("The target is the source file itself."));
-    }
-    let out = match req.mode {
-        ConversionMode::Merge => {
-            let (base, _) = read_save(&path)?;
-            transfer::merge(&source, &base)?
-        }
-        ConversionMode::Replace => {
-            let mut out = transfer::convert(&source, req.target_edition);
-            if let Some(account) = target_account(&path) {
-                if header::steam_id(out.block(HEADER_ENTRY)).is_some_and(|a| a != account) {
-                    header::set_steam_id(out.block_mut(HEADER_ENTRY), account)?;
-                }
-            }
-            out
-        }
-    };
-    let (backup, fingerprint) = write_checked(&path, &out)?;
-
-    // A target that is open in the app now shows what was written.
-    let id = doc_id(&path);
-    if let Some(doc) = state.docs.lock().unwrap().get_mut(&id) {
-        if let Ok((save, _)) = read_save(&path) {
-            *doc = Doc { path: path.clone(), save, fingerprint, dirty: false };
-        }
-    }
-    Ok(WriteReport {
-        path: path.to_string_lossy().into_owned(),
-        backup: backup.map(|b| b.to_string_lossy().into_owned()),
-        edition: out.edition,
-    })
-}
-
-#[tauri::command]
-pub async fn compare_saves(state: State<'_, AppState>, source_id: String, target_id: String) -> CmdResult<Compatibility> {
-    let docs = state.docs.lock().unwrap();
-    let get = |id: &str| docs.get(id).ok_or_else(|| SaveError::new("notOpen", "That save is not open."));
-    Ok(transfer::compare(&get(&source_id)?.save, &get(&target_id)?.save))
-}
-
-/// Copies one character into a slot of another open save (or of the same save). The
-/// target is only changed in memory; `write_save` stores it.
-#[tauri::command]
-pub async fn transfer_character(
-    state: State<'_, AppState>,
-    source_id: String,
-    from_slot: usize,
-    target_id: String,
-    to_slot: usize,
-) -> CmdResult<SaveView> {
-    let mut docs = state.docs.lock().unwrap();
-    let source = docs.get(&source_id).ok_or_else(|| SaveError::new("notOpen", "That save is not open."))?.save.clone();
-    let target = docs.get_mut(&target_id).ok_or_else(|| SaveError::new("notOpen", "That save is not open."))?;
-    if !character::summary(&source, from_slot.min(SLOT_COUNT - 1)).occupied {
-        return Err(SaveError::invalid("The source slot has no character."));
-    }
-    transfer::transfer(&source, from_slot, &mut target.save, to_slot)?;
-    target.dirty = true;
-    Ok(view(&target_id, target))
-}
-
-/// The default target for converting a save: the other release's file in the same folder.
-#[tauri::command]
-pub async fn default_target(path: String, edition: Edition) -> String {
-    let p = PathBuf::from(path);
-    p.with_file_name(edition.file_name()).to_string_lossy().into_owned()
 }

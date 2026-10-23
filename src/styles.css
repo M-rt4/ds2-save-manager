@@ -1139,6 +1139,348 @@ kbd {
   }
 }
 
+/* ---------- Transfer steps, change lists, settings ---------- */
+
+.transfer .step {
+  margin: 22px 0 8px;
+  font-size: 17px;
+  font-weight: 500;
+  color: #ebe5d5;
+}
+.transfer .step:first-of-type {
+  margin-top: 4px;
+}
+.journey .meta-line {
+  margin-top: 6px;
+  font-size: 14px;
+  color: var(--ash);
+}
+.dim {
+  color: var(--dim);
+}
+.strong {
+  color: #f1ebdb;
+}
+.btn.small {
+  padding: 3px 12px;
+  font-size: 14px;
+}
+.kv.compact {
+  grid-template-columns: 210px minmax(0, 1fr);
+  font-size: 15px;
+}
+.kv.compact > div {
+  padding: 4px 0;
+}
+.account-edit {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.account-edit .field {
+  width: 220px;
+}
+.changes {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+}
+.changes li {
+  position: relative;
+  padding: 7px 12px 7px 28px;
+  border: 1px solid var(--line-faint);
+  background: rgba(0, 0, 0, 0.22);
+  font-size: 15.5px;
+  user-select: text;
+}
+.changes li::before {
+  content: '';
+  position: absolute;
+  left: 11px;
+  top: 15px;
+  width: 6px;
+  height: 6px;
+  transform: rotate(45deg);
+  background: var(--line-strong);
+}
+.changes li.change-slot::before,
+.changes li.change-account::before,
+.changes li.change-regulation::before {
+  background: var(--raised);
+}
+.report-body {
+  padding: 14px 22px 4px;
+  max-height: calc(100vh - 260px);
+  overflow: auto;
+}
+.report-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 16px 22px 20px;
+}
+label.check {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ash);
+  font-size: 15px;
+  cursor: pointer;
+}
+input[type='checkbox'] {
+  width: 15px;
+  height: 15px;
+  accent-color: #cfc6b1;
+}
+.settings-body {
+  min-height: 220px;
+  padding: 18px 22px 8px;
+}
+.setting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 6px;
+  border-bottom: 1px solid var(--line-faint);
+}
+.setting b {
+  display: block;
+  font-weight: 500;
+}
+.setting span {
+  display: block;
+  color: var(--ash);
+  font-size: 14.5px;
+}
+.setting.check {
+  justify-content: flex-start;
+  align-items: flex-start;
+  cursor: pointer;
+}
+.setting.check input {
+  margin-top: 4px;
+}
+.setting .path {
+  word-break: break-all;
+  user-select: text;
+}
+
+/* ---------- Item cards (the game's own icons) ---------- */
+
+.item-card {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 54px;
+  border: 1px solid var(--line);
+  background: radial-gradient(circle at 50% 40%, rgba(236, 228, 206, 0.09), rgba(0, 0, 0, 0.45));
+  color: var(--ash);
+  overflow: hidden;
+}
+.item-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.item-card.small {
+  width: 24px;
+  height: 36px;
+}
+.item-card.large {
+  width: 128px;
+  height: 192px;
+}
+.item {
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+  min-height: 62px;
+}
+
+/* ---------- Add-item view ---------- */
+
+.add-view {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+.add-view .add-grid {
+  display: grid;
+  grid-template-columns: 190px minmax(0, 1fr) 250px;
+  flex: 1;
+  min-height: 0;
+  height: auto;
+  border: 0;
+}
+.add-view .list {
+  overflow: auto;
+  border-right: 1px solid var(--line-faint);
+}
+.catalog-row {
+  padding: 5px 16px;
+  gap: 12px;
+}
+.catalog-row .slot-tag {
+  margin-left: auto;
+  font-size: 14px;
+}
+.add-detail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 18px 18px 22px;
+  overflow: auto;
+  text-align: center;
+}
+.add-detail .item-title {
+  margin: 6px 0 0;
+  font-size: 19px;
+  font-weight: 500;
+  color: #f1ebdb;
+}
+.add-detail .add-opts {
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  padding: 10px 0 6px;
+}
+.add-detail .add-opts label {
+  justify-content: space-between;
+}
+.add-detail .btn.ember {
+  margin-top: 4px;
+}
+
+/* ---------- Dropdowns ---------- */
+
+select.field {
+  appearance: none;
+  padding-right: 28px;
+  text-align: left;
+  cursor: pointer;
+  background-color: rgba(0, 0, 0, 0.35);
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--ash) 50%),
+    linear-gradient(135deg, var(--ash) 50%, transparent 50%);
+  background-position:
+    calc(100% - 15px) 50%,
+    calc(100% - 10px) 50%;
+  background-size:
+    5px 5px,
+    5px 5px;
+  background-repeat: no-repeat;
+}
+select.field:hover {
+  border-color: var(--line);
+}
+select.field option {
+  background: #15130f;
+  color: var(--bone);
+}
+select.field option:checked {
+  background: #2c2820;
+  color: #f1ebdb;
+}
+
+/* ---------- Backups ---------- */
+
+.backups-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  padding: 8px 22px 12px;
+}
+.backups-head .lead {
+  flex: 1;
+  max-width: 68ch;
+  margin: 0;
+  color: var(--ash);
+  font-size: 15.5px;
+}
+.backups-notes {
+  display: grid;
+  gap: 8px;
+  padding: 0 22px 8px;
+}
+.backups-count {
+  padding: 2px 22px 0;
+  color: var(--dim);
+  font-size: 14px;
+}
+.backups .group-label {
+  padding-left: 22px;
+}
+.backups-empty {
+  padding: 8px 22px;
+}
+.backup-row {
+  display: grid;
+  grid-template-columns: 74px minmax(0, 1fr) auto;
+  grid-template-areas:
+    'when why badge'
+    '. who size'
+    '. acts acts';
+  align-items: baseline;
+  gap: 1px 14px;
+  padding: 8px 22px;
+}
+.backup-row .when {
+  grid-area: when;
+  font-size: 16px;
+}
+.backup-row .why {
+  grid-area: why;
+  color: var(--ash);
+  font-size: 14.5px;
+}
+.backup-row .badge {
+  grid-area: badge;
+  justify-self: end;
+  margin-left: 0;
+}
+.backup-row .who {
+  grid-area: who;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--ash);
+  font-size: 14px;
+}
+.backup-row .who b {
+  font-weight: 400;
+  color: var(--bone);
+}
+.backup-row .who.bad {
+  color: #e8c0b4;
+}
+.backup-row .size {
+  grid-area: size;
+  justify-self: end;
+  color: var(--dim);
+  font-size: 14px;
+}
+.backup-row .acts {
+  grid-area: acts;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 2px;
+  cursor: default;
+}
+.backup-row .acts .why-not {
+  color: var(--dim);
+  font-size: 14px;
+}
+.btn.quiet.danger:hover:not(:disabled) {
+  color: var(--danger);
+}
+
 /* ---------- Games rail: installs and where each release saves ---------- */
 
 /* Wider than the old saves list, so a file name, its age and an install path fit. */

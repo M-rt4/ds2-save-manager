@@ -10,6 +10,7 @@ use super::edition::Edition;
 use super::error::{Result, SaveError};
 use super::file::{character_entry, world_entry, SaveFile, HEADER_ENTRY, SLOT_COUNT, SUMMARY_ENTRY};
 use super::header::{self, TITLE_HEAD_LEN};
+use super::regulation::{self, Regulation};
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -139,4 +140,66 @@ pub fn merge(src: &SaveFile, base: &SaveFile) -> Result<SaveFile> {
         }
     }
     Ok(out)
+}
+
+/// What a save must carry to be accepted by one installed release: its regulation copy (with
+/// the game's version stamp), the capacity of the entry holding it, and the version of the
+/// title list copy in entry 22.
+#[derive(Debug, Clone)]
+pub struct TargetFormat {
+    pub edition: Edition,
+    pub regulation: Regulation,
+    pub capacity: usize,
+    pub title_version: u32,
+}
+
+/// Entry 21 capacity and entry 22 title-list version each release writes.
+pub fn edition_layout(edition: Edition) -> (usize, u32) {
+    match edition {
+        Edition::Scholar => (0x20_0000, 0x6E),
+        Edition::Original => (0x10_0000, 0x6F),
+    }
+}
+
+impl TargetFormat {
+    /// The format of a save the target game itself wrote; the most faithful source.
+    pub fn from_save(save: &SaveFile) -> Result<Self> {
+        Ok(Self {
+            edition: save.source_edition,
+            regulation: Regulation::from_entry(save.block(regulation::ENTRY))?,
+            capacity: save.block(regulation::ENTRY).len(),
+            title_version: chunks::find(save.block(SUMMARY_ENTRY), header::TITLE_CHUNK)
+                .map(|c| c.version)
+                .unwrap_or(edition_layout(save.source_edition).1),
+        })
+    }
+
+    /// The format of an installed game, for when it has written no save yet.
+    pub fn from_install(edition: Edition, game_dir: &std::path::Path) -> Result<Self> {
+        let (capacity, title_version) = edition_layout(edition);
+        Ok(Self { edition, regulation: Regulation::from_install(game_dir)?, capacity, title_version })
+    }
+}
+
+/// Makes `save` a save of `fmt`'s release: its key, its regulation copy and stamp, and its
+/// entry-22 title-list version. Character and world data are identical in both releases.
+pub fn conform(save: &mut SaveFile, fmt: &TargetFormat) -> Result<()> {
+    let entry = fmt.regulation.to_entry(fmt.capacity)?;
+    if regulation::ENTRY >= save.block_count() || SUMMARY_ENTRY >= save.block_count() {
+        return Err(SaveError::format("The save has no regulation or summary entry."));
+    }
+    let title = chunks::find(save.block(SUMMARY_ENTRY), header::TITLE_CHUNK)
+        .ok_or_else(|| SaveError::format("The save has no second title list."))?;
+    save.set_block_data(regulation::ENTRY, &entry);
+    save.block_mut(SUMMARY_ENTRY)[title.offset + 4..title.offset + 8].copy_from_slice(&fmt.title_version.to_le_bytes());
+    save.edition = fmt.edition;
+    Ok(())
+}
+
+/// The regulation details of a save, for showing which game wrote it.
+pub fn regulation_info(save: &SaveFile) -> Option<regulation::RegulationInfo> {
+    (regulation::ENTRY < save.block_count())
+        .then(|| Regulation::from_entry(save.block(regulation::ENTRY)).ok())
+        .flatten()
+        .map(|r| r.info())
 }

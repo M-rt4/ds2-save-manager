@@ -2,7 +2,9 @@
 
 mod commands;
 mod commands_about;
+mod commands_backups;
 mod commands_games;
+mod conversion;
 
 use tauri::{WebviewUrl, WebviewWindowBuilder};
 
@@ -41,11 +43,13 @@ fn main() {
             commands::item_catalog,
             commands::write_save,
             commands::set_account,
-            commands::plan_conversion,
-            commands::run_conversion,
-            commands::compare_saves,
-            commands::transfer_character,
-            commands::default_target,
+            conversion::plan_conversion,
+            conversion::run_conversion,
+            conversion::default_target,
+            commands_backups::list_backups,
+            commands_backups::create_backup,
+            commands_backups::restore_backup,
+            commands_backups::delete_backup,
             commands_games::list_games,
             commands_games::add_game_folder,
             commands_games::remove_game_folder,

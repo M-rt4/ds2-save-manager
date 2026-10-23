@@ -5,12 +5,14 @@ import { StatusTab } from './StatusTab';
 import { InventoryTab } from './InventoryTab';
 import { TransferTab } from './TransferTab';
 import { FileTab } from './FileTab';
+import { BackupsTab } from './BackupsTab';
 import { ErrorBoundary } from './ErrorBoundary';
 
 const TABS: { id: Tab; key: Key }[] = [
   { id: 'status', key: 'tab.status' },
   { id: 'inventory', key: 'tab.inventory' },
   { id: 'transfer', key: 'tab.transfer' },
+  { id: 'backups', key: 'backup.tab' },
   { id: 'file', key: 'tab.file' }
 ];
 
@@ -60,6 +62,7 @@ export function Detail() {
             {tab === 'inventory' && character && <InventoryTab character={character} />}
             {tab === 'transfer' && <TransferTab doc={doc} />}
             {tab === 'file' && <FileTab doc={doc} />}
+            {tab === 'backups' && <BackupsTab doc={doc} />}
           </ErrorBoundary>
         </>
       )}

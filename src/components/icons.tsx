@@ -101,6 +101,15 @@ export function CategoryIcon({ category, ...p }: P & { category: Category }) {
   return <Svg {...p}>{CATEGORY_PATHS[category]}</Svg>;
 }
 
+/** The game's own icon for an item, on its 2:3 card; the category glyph when there is none. */
+export function ItemIcon({ icon, category, className = 'item-card' }: { icon?: number | null; category: Category; className?: string }) {
+  return (
+    <span className={className}>
+      {icon ? <img src={`/icons/${icon}.webp`} alt="" loading="lazy" draggable={false} /> : <CategoryIcon category={category} size={18} />}
+    </span>
+  );
+}
+
 export const Chevron = ({ dir = 'right', ...p }: P & { dir?: 'left' | 'right' | 'down' }) => (
   <Svg {...p}>
     <path d={dir === 'left' ? 'M14.5 6 8.5 12l6 6' : dir === 'down' ? 'M6 9.5l6 6 6-6' : 'M9.5 6l6 6-6 6'} />

@@ -62,7 +62,6 @@ pub fn declared_len(plain: &[u8]) -> Option<usize> {
 }
 
 /// Pads `data` the way the game does: length prefix, data, then `n` bytes of value `n`.
-#[cfg(test)]
 pub fn wrap_payload(data: &[u8]) -> Vec<u8> {
     let pad = (16 - (data.len() + 4) % 16) % 16;
     let mut plain = Vec::with_capacity(data.len() + 4 + pad);
