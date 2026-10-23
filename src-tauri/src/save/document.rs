@@ -273,6 +273,19 @@ pub struct FieldChange {
     pub to: String,
     /// False for what the editor only shows; such a change is not written.
     pub applies: bool,
+    /// Set when a new entry joins a stack the character already holds instead of taking a
+    /// record of its own (that is how the game, and `inventory::apply`, add a stackable).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub stack: Option<StackAdd>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StackAdd {
+    pub name: String,
+    pub added: u16,
+    /// What the stack holds afterwards, at most the item's limit.
+    pub total: u16,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -355,7 +368,7 @@ struct Plan {
 
 impl Plan {
     fn change<T: Serialize>(&mut self, place: Place, from: &T, to: &T, applies: bool) {
-        self.changes.push(FieldChange { place, from: json(from), to: json(to), applies });
+        self.changes.push(FieldChange { place, from: json(from), to: json(to), applies, stack: None });
     }
 
     fn problem(&mut self, place: Place, message: impl Into<String>) {
@@ -547,13 +560,13 @@ fn plan_inventory(p: &mut Plan, cur: &Character, items: &[ItemDoc]) -> Vec<Inven
     let held: HashMap<usize, &Item> = cur.inventory.items.iter().map(|i| (i.offset, i)).collect();
     let (mut sets, mut removes, mut adds) = (Vec::new(), Vec::new(), Vec::new());
     let mut kept = HashSet::new();
+    let mut counts: HashMap<usize, u16> = HashMap::new();
+    let mut new_items = Vec::new();
 
     for (index, it) in items.iter().enumerate() {
         let at = |field: &str| Place::item(slot, it.record, index, field);
         let Some(record) = it.record else {
-            if let Some(op) = plan_new_item(p, it, at) {
-                adds.push(op);
-            }
+            new_items.push((index, it));
             continue;
         };
         let Some(now) = held.get(&record) else {
@@ -572,6 +585,7 @@ fn plan_inventory(p: &mut Plan, cur: &Character, items: &[ItemDoc]) -> Vec<Inven
             match now.max_quantity {
                 Some(max) if (1..=max).contains(&q) => {
                     sets.push(InventoryOp::SetQuantity { offset: record, quantity: q });
+                    counts.insert(record, q);
                     p.change(at("quantity"), &now.quantity, &Some(q), true);
                 }
                 Some(max) => p.problem(at("quantity"), format!("{} holds 1 to {max}.", now.name)),
@@ -603,10 +617,29 @@ fn plan_inventory(p: &mut Plan, cur: &Character, items: &[ItemDoc]) -> Vec<Inven
             p.change(at, &i.name, &"—".to_string(), true);
         }
     }
+
+    // New entries are written last. A stackable item the character still holds (after the
+    // changes and removals above) is added to the first record holding it, as the game does.
+    let mut stacks: HashMap<u32, u16> = HashMap::new();
+    let mut held_main: Vec<&Item> = cur.inventory.items.iter().filter(|i| i.region == Region::Main && kept.contains(&i.offset)).collect();
+    held_main.sort_by_key(|i| i.offset);
+    for i in held_main {
+        if i.category.stackable() {
+            let count = counts.get(&i.offset).copied().or(i.quantity).unwrap_or(1);
+            stacks.entry(i.id).or_insert(count);
+        }
+    }
+    for (index, it) in new_items {
+        if let Some(op) = plan_new_item(p, it, |field| Place::item(slot, None, index, field), &mut stacks) {
+            adds.push(op);
+        }
+    }
     sets.into_iter().chain(removes).chain(adds).collect()
 }
 
-fn plan_new_item(p: &mut Plan, it: &ItemDoc, at: impl Fn(&str) -> Place) -> Option<InventoryOp> {
+/// `stacks`: what each stackable item's first held record will hold by the time this entry
+/// is added.
+fn plan_new_item(p: &mut Plan, it: &ItemDoc, at: impl Fn(&str) -> Place, stacks: &mut HashMap<u32, u16>) -> Option<InventoryOp> {
     let Some(def) = catalog().get(it.id) else {
         p.problem(at("id"), format!("There is no item with id {}.", it.id));
         return None;
@@ -644,6 +677,22 @@ fn plan_new_item(p: &mut Plan, it: &ItemDoc, at: impl Fn(&str) -> Place) -> Opti
             }
         },
     };
+    let op = InventoryOp::Add { id: it.id, quantity, reinforcement, infusion };
+    if def.cat.stackable() {
+        if let Some(held) = stacks.get_mut(&it.id) {
+            let total = held.saturating_add(quantity).min(def.max_quantity());
+            p.changes.push(FieldChange {
+                place: at("id"),
+                from: json(&format!("{} ×{held}", def.name)),
+                to: json(&format!("{} ×{total}", def.name)),
+                applies: true,
+                stack: Some(StackAdd { name: def.name.clone(), added: quantity, total }),
+            });
+            *held = total;
+            return Some(op);
+        }
+        stacks.insert(it.id, quantity);
+    }
     let mut to = def.name.clone();
     if quantity > 1 {
         to += &format!(" ×{quantity}");
@@ -652,7 +701,7 @@ fn plan_new_item(p: &mut Plan, it: &ItemDoc, at: impl Fn(&str) -> Place) -> Opti
         to += &format!(" +{reinforcement}");
     }
     p.change(at("id"), &"—".to_string(), &to, true);
-    Some(InventoryOp::Add { id: it.id, quantity, reinforcement, infusion })
+    Some(op)
 }
 
 fn write(save: &mut SaveFile, writes: &Writes) -> Result<()> {
