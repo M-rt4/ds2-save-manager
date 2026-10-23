@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { open, save as saveDialog } from '@tauri-apps/plugin-dialog';
 import { api, type ConversionPlan, type ConversionRequest, type Edition, type SaveView, type SlotView } from '../api';
-import { useStore } from '../store';
+import { gameDirFor, useStore } from '../store';
 import { errorText, useT } from '../i18n';
 import { editionName } from '../game';
 import { ChangeList } from './ChangeList';
@@ -27,7 +27,6 @@ export function TransferTab({ doc }: { doc: SaveView }) {
   const t = useT();
   const lang = useStore((s) => s.lang);
   const store = useStore();
-  const settings = useStore((s) => s.settings);
   const [kind, setKind] = useState<'whole' | 'single'>('whole');
   const [targetEdition, setTargetEdition] = useState<Edition>(other(doc.sourceEdition));
   const [targetPath, setTargetPath] = useState('');
@@ -44,9 +43,7 @@ export function TransferTab({ doc }: { doc: SaveView }) {
     void api.defaultTarget(doc.path, targetEdition).then(setTargetPath);
   }, [doc.path, targetEdition]);
 
-  // The folder the user chose wins; otherwise the install the Games panel found.
-  const detected = useStore((s) => s.games.find((g) => g.edition === targetEdition)?.installs[0]?.path ?? null);
-  const gameDir = settings.gameDirs[targetEdition] ?? detected;
+  const gameDir = useStore((s) => gameDirFor(s.games, targetEdition));
   const request: ConversionRequest = {
     sourceId: doc.id,
     slot: kind === 'single' && fromSlot !== null && toSlot !== null ? [fromSlot, toSlot] : null,
@@ -90,7 +87,7 @@ export function TransferTab({ doc }: { doc: SaveView }) {
   };
   const chooseGameDir = async () => {
     const dir = await open({ directory: true, multiple: false, title: editionName(targetEdition) });
-    if (typeof dir === 'string') store.setSettings({ gameDirs: { ...settings.gameDirs, [targetEdition]: dir } });
+    if (typeof dir === 'string') await store.addGameFolder(dir);
   };
 
   const run = () => {

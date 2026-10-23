@@ -4,12 +4,14 @@ import type { Edition } from '../api';
 import { useStore } from '../store';
 import { useT, type Key } from '../i18n';
 import { editionName } from '../game';
+import { AboutView } from './AboutView';
 
-type SettingsTab = 'general' | 'transfer' | 'games';
+type SettingsTab = 'general' | 'transfer' | 'games' | 'about';
 const TABS: { id: SettingsTab; key: Key }[] = [
   { id: 'general', key: 'settings.general' },
   { id: 'transfer', key: 'settings.transfer' },
-  { id: 'games', key: 'settings.games' }
+  { id: 'games', key: 'settings.games' },
+  { id: 'about', key: 'about.title' }
 ];
 
 /** The app's options, laid out like the game's own option menu: tabs over a list of rows. */
@@ -28,9 +30,12 @@ export function SettingsView() {
     return () => window.removeEventListener('keydown', onKey);
   }, [close]);
 
-  const pickGameDir = async (edition: Edition) => {
-    const dir = await open({ directory: true, multiple: false, title: editionName(edition) });
-    if (typeof dir === 'string') setSettings({ gameDirs: { ...settings.gameDirs, [edition]: dir } });
+  const games = useStore((s) => s.games);
+  const addGameFolder = useStore((s) => s.addGameFolder);
+  const removeGameFolder = useStore((s) => s.removeGameFolder);
+  const pickGameDir = async () => {
+    const dir = await open({ directory: true, multiple: false });
+    if (typeof dir === 'string') await addGameFolder(dir);
   };
 
   return (
@@ -81,33 +86,36 @@ export function SettingsView() {
               <p className="note" style={{ marginTop: 0 }}>
                 {t('settings.gamesHint')}
               </p>
-              {(['original', 'scholar'] as Edition[]).map((e) => (
-                <div className="setting" key={e}>
-                  <div>
-                    <b>{editionName(e)}</b>
-                    <span className="path">{settings.gameDirs[e] ?? t('settings.notSet')}</span>
+              {(['scholar', 'original'] as Edition[]).map((e) => {
+                const installs = games.find((g) => g.edition === e)?.installs ?? [];
+                return (
+                  <div className="setting" key={e}>
+                    <div>
+                      <b>{editionName(e)}</b>
+                      {installs.length === 0 && <span>{t('games.notFound')}</span>}
+                      {installs.map((i) => (
+                        <span key={i.path} className="path">
+                          {i.path} ({t(`games.source.${i.source}` as Key)}
+                          {i.exeVersion ? `, ${i.exeVersion}` : ''}){' '}
+                          {i.source === 'manual' && (
+                            <button className="btn quiet small" onClick={() => void removeGameFolder(i.path)}>
+                              {t('games.forget')}
+                            </button>
+                          )}
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <button className="btn" onClick={() => void pickGameDir(e)}>
-                      {t('settings.chooseFolder')}
-                    </button>
-                    {settings.gameDirs[e] && (
-                      <button
-                        className="btn quiet"
-                        onClick={() => {
-                          const next = { ...settings.gameDirs };
-                          delete next[e];
-                          setSettings({ gameDirs: next });
-                        }}
-                      >
-                        {t('settings.clear')}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
+              <div style={{ paddingTop: 12 }}>
+                <button className="btn" onClick={() => void pickGameDir()}>
+                  {t('games.addFolder')}
+                </button>
+              </div>
             </>
           )}
+          {tab === 'about' && <AboutView />}
         </div>
         <div className="choices" style={{ display: 'flex', justifyContent: 'flex-end', padding: '12px 22px 20px' }}>
           <button className="btn" onClick={() => close(false)}>

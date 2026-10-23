@@ -21,11 +21,18 @@ export type Tab = 'status' | 'inventory' | 'transfer' | 'file' | 'backups';
 export interface Settings {
   /** Show the "what changed" summary after a transfer. */
   showTransferReport: boolean;
-  /** Install folders the user pointed at, per release. */
-  gameDirs: Partial<Record<Edition, string>>;
 }
 
-const DEFAULT_SETTINGS: Settings = { showTransferReport: true, gameDirs: {} };
+const DEFAULT_SETTINGS: Settings = { showTransferReport: true };
+
+/**
+ * The install folder conversions read a release's format from: one the user added by hand
+ * wins over the detected ones (all kept in settings.json by the games commands).
+ */
+export function gameDirFor(games: GameInfo[], edition: Edition): string | null {
+  const installs = games.find((g) => g.edition === edition)?.installs ?? [];
+  return (installs.find((i) => i.source === 'manual') ?? installs[0])?.path ?? null;
+}
 
 function loadSettings(): Settings {
   try {
@@ -101,6 +108,8 @@ interface State {
   showReport: (report: TransferReportView | null) => void;
   refreshGames: () => Promise<void>;
   setGames: (games: GameInfo[]) => void;
+  addGameFolder: (dir: string) => Promise<void>;
+  removeGameFolder: (dir: string) => Promise<void>;
 }
 
 export function draftOf(c: CharacterView): Draft {
@@ -297,7 +306,25 @@ export const useStore = create<State>((set, get) => ({
     const games = await gamesApi.listGames().catch(() => [] as GameInfo[]);
     set({ games, gamesLoaded: true });
   },
-  setGames: (games) => set({ games, gamesLoaded: true })
+  setGames: (games) => set({ games, gamesLoaded: true }),
+  addGameFolder: async (dir) => {
+    try {
+      const games = await gamesApi.addGameFolder(dir);
+      set({ games, gamesLoaded: true });
+      const game = games.find((g) => g.installs.some((i) => i.path.toLowerCase() === dir.toLowerCase()));
+      if (game) get().toast(get().t('games.added', { path: dir, edition: game.edition === 'scholar' ? 'Scholar of the First Sin' : 'Dark Souls II' }));
+    } catch (e) {
+      if (typeof e === 'object' && e && (e as { code?: string }).code === 'notGameFolder') get().toast(get().t('games.notGameFolder'), 'error');
+      else get().fail(e);
+    }
+  },
+  removeGameFolder: async (dir) => {
+    try {
+      set({ games: await gamesApi.removeGameFolder(dir), gamesLoaded: true });
+    } catch (e) {
+      get().fail(e);
+    }
+  }
 }));
 
 /** Whether anything is waiting to be written: in-memory edits or a status draft. */

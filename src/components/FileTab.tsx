@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { revealItemInDir } from '@tauri-apps/plugin-opener';
 import { api, type ConversionPlan, type ConversionRequest, type SaveView } from '../api';
-import { useStore } from '../store';
+import { gameDirFor, useStore } from '../store';
 import { errorText, useT } from '../i18n';
 import { editionName } from '../game';
 import { ChangeList } from './ChangeList';
@@ -109,8 +109,7 @@ function FitToGame({ doc }: { doc: SaveView }) {
   const t = useT();
   const store = useStore();
   const lang = useStore((s) => s.lang);
-  const settings = useStore((s) => s.settings);
-  const detected = useStore((s) => s.games.find((g) => g.edition === doc.sourceEdition)?.installs[0]?.path ?? null);
+  const gameDir = useStore((s) => gameDirFor(s.games, doc.sourceEdition));
   const [plan, setPlan] = useState<ConversionPlan | null>(null);
   const [busy, setBusy] = useState(false);
   const request: ConversionRequest = {
@@ -119,7 +118,7 @@ function FitToGame({ doc }: { doc: SaveView }) {
     targetEdition: doc.sourceEdition,
     targetPath: doc.path,
     account: null,
-    gameDir: settings.gameDirs[doc.sourceEdition] ?? detected
+    gameDir
   };
   const changes = plan?.changes.filter((c) => c.kind !== 'keptTargetSystem') ?? [];
 

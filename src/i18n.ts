@@ -289,7 +289,35 @@ const en = {
   'games.folder': 'Folder {name}',
   'games.willWrite': 'Not created yet; the game writes it here on its first save.',
   'games.noCharacters': 'No characters',
-  'games.unreadable': 'Can\'t be read: {msg}'
+  'games.unreadable': 'Can\'t be read: {msg}',
+
+  'about.title': 'About',
+  'about.version': 'Version {v}',
+  'about.lead': 'Opens and edits Dark Souls II saves, and carries them between the original release and Scholar of the First Sin.',
+  'about.author': 'Author',
+  'about.repo': 'Source',
+  'about.private': 'private repository',
+  'about.stack': 'Built with',
+  'about.system': 'System',
+  'about.games': 'Games on this PC',
+  'about.steamApp': 'Steam app {id}',
+  'about.install': 'Game folder',
+  'about.notInstalled': 'Not found on this PC.',
+  'about.exeVersion': 'Game version',
+  'about.regulation': 'Regulation version',
+  'about.notRead': 'could not be read',
+  'about.saves': 'Save folder',
+  'about.accounts': 'Accounts',
+  'about.hasSave': '{file}, {n} characters',
+  'about.noSave': 'no {file} yet',
+  'about.credits': 'Built on the work of others',
+  'about.credit.sl2': 'Item tables, the save layout both releases share, character offsets and the derived-stat curves.',
+  'about.credit.alfizari': 'The SL2 entry layout, the Scholar key, and the name, souls, attribute and inventory offsets.',
+  'about.credit.soulsformats': 'The two AES-128 save keys.',
+  'about.credit.bindertool': 'Decrypting the game\'s archives and regulation file.',
+  'about.credit.paramdex': 'Definitions of the game\'s parameter tables.',
+  'about.assets': 'The menu font and the item icons are made from Dark Souls II\'s own files; their designs belong to FromSoftware / Bandai Namco. EB Garamond and Cinzel (SIL Open Font License) are bundled as fallbacks.',
+  'about.trademark': 'Dark Souls is a trademark of Bandai Namco Entertainment / FromSoftware. This project is not affiliated with or endorsed by them.'
 } as const;
 
 export type Key = keyof typeof en;
@@ -580,7 +608,35 @@ const tr: Record<Key, string> = {
   'games.folder': 'Klasör {name}',
   'games.willWrite': 'Henüz yok; oyun ilk kaydında buraya yazar.',
   'games.noCharacters': 'Karakter yok',
-  'games.unreadable': 'Okunamadı: {msg}'
+  'games.unreadable': 'Okunamadı: {msg}',
+
+  'about.title': 'Hakkında',
+  'about.version': 'Sürüm {v}',
+  'about.lead': 'Dark Souls II kayıtlarını açar, düzenler ve orijinal sürümle Scholar of the First Sin arasında taşır.',
+  'about.author': 'Yazar',
+  'about.repo': 'Kaynak kod',
+  'about.private': 'gizli depo',
+  'about.stack': 'Teknoloji',
+  'about.system': 'Sistem',
+  'about.games': 'Bu bilgisayardaki oyunlar',
+  'about.steamApp': 'Steam uygulaması {id}',
+  'about.install': 'Oyun klasörü',
+  'about.notInstalled': 'Bu bilgisayarda bulunamadı.',
+  'about.exeVersion': 'Oyun sürümü',
+  'about.regulation': 'Regulation sürümü',
+  'about.notRead': 'okunamadı',
+  'about.saves': 'Kayıt klasörü',
+  'about.accounts': 'Hesaplar',
+  'about.hasSave': '{file}, {n} karakter',
+  'about.noSave': '{file} henüz yok',
+  'about.credits': 'Emeği geçenler',
+  'about.credit.sl2': 'Eşya tabloları, iki sürümün ortak kayıt düzeni, karakter alanlarının konumları ve türetilmiş değer eğrileri.',
+  'about.credit.alfizari': 'SL2 bölüm düzeni, Scholar anahtarı; ad, souls, nitelik ve envanter alanlarının konumları.',
+  'about.credit.soulsformats': 'İki AES-128 kayıt anahtarı.',
+  'about.credit.bindertool': 'Oyunun arşivlerini ve regulation dosyasını çözme.',
+  'about.credit.paramdex': 'Oyunun parametre tablolarının tanımları.',
+  'about.assets': 'Menü yazı tipi ve eşya ikonları Dark Souls II\'nin kendi dosyalarından üretildi; tasarımları FromSoftware / Bandai Namco\'ya aittir. Yedek olarak EB Garamond ve Cinzel (SIL Open Font License) paketlenir.',
+  'about.trademark': 'Dark Souls, Bandai Namco Entertainment / FromSoftware\'in ticari markasıdır. Bu proje onlarla bağlantılı değildir ve onlar tarafından onaylanmamıştır.'
 };
 
 export type Lang = 'tr' | 'en';

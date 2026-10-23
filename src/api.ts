@@ -365,3 +365,14 @@ export const gamesApi = {
   addGameFolder: (path: string) => invoke<GameInfo[]>('add_game_folder', { path }),
   removeGameFolder: (path: string) => invoke<GameInfo[]>('remove_game_folder', { path })
 };
+
+// ---------- About ----------
+
+export interface SystemInfo {
+  os: string | null;
+  arch: string;
+}
+
+export const aboutApi = {
+  systemInfo: () => invoke<SystemInfo>('system_info')
+};
