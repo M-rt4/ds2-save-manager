@@ -1,6 +1,6 @@
 [package]
 name = "ds2-save-manager"
-version = "0.5.1"
+version = "0.5.2"
 description = "Dark Souls II save manager: edit, convert and transfer saves between the original game and Scholar of the First Sin."
 authors = ["Mert"]
 edition = "2021"

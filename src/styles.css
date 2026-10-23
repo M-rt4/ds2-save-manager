@@ -118,6 +118,12 @@ button {
   font-size: 15px;
   font-style: normal;
 }
+/* Nothing in the title bar gives way except the spacer and the test badge below, so the
+   version, the author and the window buttons stay in view down to the minimum width even in a
+   dev build carrying both badges. */
+.titlebar > * {
+  flex-shrink: 0;
+}
 /* Version and author, always in view: quieter than the subtitle, never wrapped or cut. */
 .titlebar .byline {
   color: var(--ash);
@@ -128,6 +134,7 @@ button {
 }
 .titlebar .spacer {
   flex: 1;
+  min-width: 0;
 }
 .titlebar .lang {
   -webkit-app-region: no-drag;
@@ -2161,7 +2168,14 @@ button.place:hover {
   letter-spacing: 0.04em;
   white-space: nowrap;
 }
-/* A copy pointed at a scratch saves folder: says so loudly, since its saves never reach the game. */
+/* A copy pointed at a scratch saves folder: says so loudly, since its saves never reach the game.
+   It is the one thing that shortens when the title bar runs out of room; the tooltip has it all. */
+.titlebar .test-badge {
+  flex-shrink: 1;
+  min-width: 56px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .test-badge {
   padding: 1px 10px;
   border: 1px solid rgba(232, 150, 70, 0.75);
