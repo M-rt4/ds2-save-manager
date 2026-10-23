@@ -10,7 +10,22 @@ mod commands_document;
 
 use tauri::{WebviewUrl, WebviewWindowBuilder};
 
+/// WebKitGTK's DMA-BUF renderer is behind most blank Tauri windows on Linux. The AppImage's GTK
+/// hook pins `GDK_BACKEND=x11`, where that renderer brings nothing, and the Steam Deck's Game
+/// Mode draws through gamescope; in both it is turned off, unless the user set the variable
+/// (`WEBKIT_DISABLE_DMABUF_RENDERER=0` keeps it on). This runs before any thread or webview exists.
+#[cfg(target_os = "linux")]
+fn linux_webkit_defaults() {
+    let appimage = std::env::var_os("APPIMAGE").is_some();
+    let game_mode = std::env::var_os("GAMESCOPE_WAYLAND_DISPLAY").is_some() || std::env::var_os("SteamDeck").is_some_and(|v| v == "1");
+    if (appimage || game_mode) && std::env::var_os("WEBKIT_DISABLE_DMABUF_RENDERER").is_none() {
+        std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
+    }
+}
+
 fn main() {
+    #[cfg(target_os = "linux")]
+    linux_webkit_defaults();
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())

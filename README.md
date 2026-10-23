@@ -20,6 +20,28 @@ Asıl amaç: orijinal sürümde başlanmış bir yolculuğa Scholar of the First
 
 Güvenlik: oyun açıkken yazma kapalıdır; dosya açıldıktan sonra oyun tarafından değiştirildiyse yazılmaz; her yazmadan önce önceki dosya kaydın yanındaki `DS2 Save Manager Backups` klasörüne zaman damgasıyla yedeklenir; yazılan dosya diske gitmeden önce yeniden okunup doğrulanır.
 
+## Kurulum
+
+Dosyalar GitHub'daki sürüm sayfasında (Releases) bulunur.
+
+### Windows
+
+- **Kurulum:** `DS2.Save.Manager_<sürüm>_x64-setup.exe`. Yönetici izni istemez, yalnızca sizin kullanıcınıza kurulur; WebView2 yoksa kendisi indirir.
+- **Taşınabilir:** `DS2.Save.Manager_<sürüm>_x64-portable.zip` dosyasını istediğiniz yere açıp `DS2SaveManager.exe`'yi çalıştırın; hiçbir şey kurulmaz. WebView2 gerekir (Windows 10 ve 11'de vardır). Ayarlar kurulu sürümle aynı yerde, `%APPDATA%\com.mert.ds2savemanager` içinde tutulur.
+- Uygulama imzalı olmadığı için SmartScreen uyarı verebilir: **Ek bilgi → Yine de çalıştır**.
+
+### Steam Deck
+
+1. Masaüstü moduna geçin (**STEAM** düğmesi → Güç → Masaüstüne Geç).
+2. Sürüm sayfasından `DS2.Save.Manager_<sürüm>_amd64.AppImage` dosyasını indirin ve örneğin `~/Applications` klasörüne taşıyın.
+3. Çalıştırılabilir yapın: Dolphin'de dosyaya sağ tıklayın → Özellikler → İzinler → **Çalıştırılabilir** (ya da terminalde `chmod +x DS2*.AppImage`). Bir kez çift tıklayıp açıldığını görün.
+4. Steam'e ekleyin: masaüstündeki Steam'de **Oyunlar → Kütüphaneme Steam Dışı Bir Oyun Ekle…** (*Add a Non-Steam Game to My Library*) → **Gözat**, dosya türünü "Tüm dosyalar" yapıp AppImage'ı seçin → **Seçili Programları Ekle**.
+5. Oyun moduna dönün; uygulama Kütüphane'de **Steam Dışı** altında.
+
+Kontroller: Oyun modunda Steam Input çalışır. Uygulamanın kontrolcü ayarlarından **Web Browser** şablonunu seçin: sağ trackpad fareyi oynatır, R2 sol tık, L2 sağ tıktır. Ekran klavyesi **STEAM + X** ile açılır. Uygulama oyun açıkken kayda yazmaz; değişiklikleri kaydetmeden önce oyundan çıkın.
+
+Pencere boş ya da beyaz kalırsa: uygulama AppImage içinde ve oyun modunda WebKit'in DMA-BUF çizicisini zaten kapatır (`WEBKIT_DISABLE_DMABUF_RENDERER=1`). Yine de boşsa Steam'deki kısayolun **Özellikler → Başlatma Seçenekleri** alanına `WEBKIT_DISABLE_COMPOSITING_MODE=1 %command%` yazın. Diğer Linux masaüstlerinde EGL hatasıyla açılmıyorsa `LD_PRELOAD=/usr/lib/libwayland-client.so.0` ile başlatmak bildirilen bir geçici çözümdür.
+
 ## Platformlar
 
 Windows, Linux ve Steam Deck. Konsollar kapsam dışı.
@@ -48,14 +70,21 @@ Her bölüm, `[tür][sürüm][boyut]` başlıklı parçalardan oluşur; uygulama
 
 ## Geliştirme
 
-Gereksinimler: Node 22+, Rust (MSVC), WebView2.
+Gereksinimler: Node 22+, Rust; Windows'ta MSVC ve WebView2, Linux'ta WebKitGTK 4.1 geliştirme paketleri (`libwebkit2gtk-4.1-dev` vb., bkz. `.github/workflows/ci.yml`).
 
 ```bash
 npm install
 npm run dev          # Tauri geliştirme penceresi
 npm run check        # tsc + clippy + cargo test
-npm run build        # NSIS kurulum paketi
+npm run build        # Windows: NSIS kurulum paketi · Linux: AppImage
+pwsh scripts/portable.ps1   # Windows: build'den sonra taşınabilir zip
 ```
+
+Sürüm çıkarmak:
+
+- Sürüm yalnızca `package.json`'da tutulur; `node scripts/version.mjs minor` (yeni özellik) ya da `patch` (yalnızca düzeltme) onu `Cargo.toml` ve kilit dosyalarıyla birlikte artırır. `tauri.conf.json` sürümü `package.json`'dan okur.
+- Sürüm notları `changelog/<sürüm>.tr.md` ve `.en.md` dosyalarına yazılır.
+- GitHub'da **Actions → Release → Run workflow** (ya da bir `v<sürüm>` etiketi) Windows kurulum paketini, taşınabilir zip'i ve AppImage'ı üretip notlarla birlikte **taslak** bir sürüme yükler. Taslağı yayınlamak etiketi oluşturur.
 
 - `scripts/build-item-db.mjs <sl2-analyzer klasörü>` — eşya tablosunu (`src-tauri/data/items.json`) yeniden üretir.
 - `scripts/build-game-font.py "<oyun klasörü>" src/public/fonts/ds2-menu.woff2` — oyunun menü fontunu (bitmap atlas) izleyip web fontuna çevirir. `pip install fonttools brotli potracer pillow numpy` gerekir.
