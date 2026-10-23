@@ -379,7 +379,34 @@ const en = {
   'stats.spell': 'Spell',
   'stats.uses': 'Uses by attunement',
   'stats.infusion': 'An infusion changes these values; they are shown for the item without it.',
-  'stats.show': 'Show stats'
+  'stats.show': 'Show stats',
+
+  'json.viewReadable': 'Readable (JSON)',
+  'json.viewBytes': 'Bytes',
+  'json.help': 'Every field of this save the editor knows, by name. You can change the account; for a character its name, souls, attributes, journey, deaths, covenant and covenants; in the inventory quantity and reinforcement, delete an entry to remove that item, or add an entry without "record" to add one. Everything else is there to read and is not written. Bytes the editor does not know stay as they are.',
+  'json.reload': 'Reload from the save',
+  'json.import': 'Import…',
+  'json.export': 'Export…',
+  'json.stale': 'The save changed while you were editing here. Your text was kept; "Reload from the save" shows the save as it is now.',
+  'json.loading': 'Reading the save…',
+  'json.unchanged': 'The text is the save as it is.',
+  'json.checking': 'Checking…',
+  'json.hasProblems': '{n} problems to fix before anything can be applied.',
+  'json.willChange': '{n} fields will change.',
+  'json.nothingApplies': 'Nothing here would change the save.',
+  'json.apply': 'Apply',
+  'json.syntaxAt': 'Line {line}, column {column}:',
+  'json.document': 'Document',
+  'json.shownOnly': 'There to read only, not written ({n}):',
+  'json.memoryNote': 'Apply changes the save in memory; "Save changes" writes it to disk, after a backup.',
+  'json.confirmReload': 'Throw away the edits in the text?',
+  'json.confirmApply': 'Apply {n} changes to the save in memory? Nothing is written to disk until you save.',
+  'json.applied': '{n} fields changed. Save changes to write them to disk.',
+  'json.exported': 'Exported to {path}',
+  'json.imported': '{file} is in the editor. Check the differences below, then apply.',
+  'err.documentSyntax': 'The text is not valid JSON for this document.',
+  'err.documentInvalid': 'The document has a problem; see the list under the editor.',
+  'err.notJson': 'Only .json files can be read or written here.'
 } as const;
 
 export type Key = keyof typeof en;
@@ -760,7 +787,34 @@ const tr: Record<Key, string> = {
   'stats.spell': 'Büyü',
   'stats.uses': 'Attunement\'a göre kullanım',
   'stats.infusion': 'Infusion bu değerleri değiştirir; burada eşyanın infusion\'sız hali gösteriliyor.',
-  'stats.show': 'Statları göster'
+  'stats.show': 'Statları göster',
+
+  'json.viewReadable': 'Okunur (JSON)',
+  'json.viewBytes': 'Baytlar',
+  'json.help': 'Bu kaydın editörün tanıdığı her alanı, adıyla. Değiştirebilecekleriniz: account; karakterde name, souls, attributes, journey, deaths, covenant ve covenants; envanterde quantity ve reinforcement. Bir girdiyi silmek o eşyayı kaldırır, "record" olmadan yazılan girdi yeni eşya ekler. Gerisi okumak içindir ve yazılmaz. Editörün tanımadığı baytlar olduğu gibi kalır.',
+  'json.reload': 'Kayıttan yeniden yükle',
+  'json.import': 'İçe aktar…',
+  'json.export': 'Dışa aktar…',
+  'json.stale': 'Siz burada düzenlerken kayıt değişti. Metniniz korundu; "Kayıttan yeniden yükle" kaydın şu anki halini gösterir.',
+  'json.loading': 'Kayıt okunuyor…',
+  'json.unchanged': 'Metin, kaydın şu anki hali.',
+  'json.checking': 'Denetleniyor…',
+  'json.hasProblems': 'Uygulamadan önce düzeltilmesi gereken {n} sorun var.',
+  'json.willChange': '{n} alan değişecek.',
+  'json.nothingApplies': 'Buradaki hiçbir şey kaydı değiştirmez.',
+  'json.apply': 'Uygula',
+  'json.syntaxAt': 'Satır {line}, sütun {column}:',
+  'json.document': 'Belge',
+  'json.shownOnly': 'Yalnızca okumak için, yazılmaz ({n}):',
+  'json.memoryNote': 'Uygula kaydı bellekte değiştirir; diske "Değişiklikleri kaydet" yazar, önce yedek alarak.',
+  'json.confirmReload': 'Metindeki düzenlemelerden vazgeçilsin mi?',
+  'json.confirmApply': '{n} değişiklik bellekteki kayda uygulansın mı? Kaydedene kadar diske hiçbir şey yazılmaz.',
+  'json.applied': '{n} alan değişti. Diske yazmak için Değişiklikleri kaydet.',
+  'json.exported': '{path} dosyasına aktarıldı',
+  'json.imported': '{file} editörde. Aşağıdaki farkları kontrol edip uygulayın.',
+  'err.documentSyntax': 'Metin bu belge için geçerli JSON değil.',
+  'err.documentInvalid': 'Belgede bir sorun var; editörün altındaki listeye bakın.',
+  'err.notJson': 'Burada yalnızca .json dosyaları okunup yazılabilir.'
 };
 
 export type Lang = 'tr' | 'en';
