@@ -55,9 +55,12 @@ function Browser({ request }: { request: BrowseOptions & { resolve: (p: string |
   useEffect(() => {
     void filesApi.places().then(async (p) => {
       setPlaces(p);
-      const start = request.defaultPath ?? p[0]?.path;
-      // A suggested file opens its folder; a suggested folder opens itself.
-      if (start && (request.mode === 'save' || !(await go(start)))) void go(dirOf(start));
+      // A suggested folder opens itself, a suggested file its folder; a bare file name, or
+      // nothing, starts at the first place (the save folder).
+      const start = request.defaultPath ?? '';
+      if (start && request.mode !== 'save' && (await go(start))) return;
+      if (dirOf(start) && (await go(dirOf(start)))) return;
+      if (p[0]) void go(p[0].path);
     });
     // Escape closes the browser only, not the settings it may have been opened from.
     const onKey = (e: KeyboardEvent) => {

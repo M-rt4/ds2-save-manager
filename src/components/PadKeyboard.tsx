@@ -35,6 +35,29 @@ const HINTS: { button: PadButton; key: Key; kinds?: Osk['kind'][] }[] = [
   { button: 'select', key: 'osk.cancel' }
 ];
 
+/** A text area's lines around the caret: the whole document would not fit, nor be readable. */
+function Lines({ osk }: { osk: Osk }) {
+  const lines = osk.value.split('\n');
+  const at = osk.value.slice(0, osk.caret).split('\n').length - 1;
+  const column = osk.caret - (osk.value.lastIndexOf('\n', osk.caret - 1) + 1);
+  const from = Math.max(0, at - 2);
+  return (
+    <div className="osk-value multi">
+      {lines.slice(from, at + 3).map((line, i) =>
+        from + i === at ? (
+          <div key={from + i} className="cur">
+            <span>{line.slice(0, column)}</span>
+            <span className="caret" />
+            <span>{line.slice(column)}</span>
+          </div>
+        ) : (
+          <div key={from + i}>{line || ' '}</div>
+        )
+      )}
+    </div>
+  );
+}
+
 export function PadKeyboard() {
   const osk = useOsk((s) => s.osk);
   return osk ? <Keyboard osk={osk} /> : null;
@@ -60,16 +83,20 @@ function Keyboard({ osk }: { osk: Osk }) {
   return (
     <div className="osk-layer">
       <div className="panel osk" role="dialog" aria-label={t('osk.title')}>
-        <div className="osk-value">
-          <span>{osk.value.slice(0, osk.caret)}</span>
-          <span className="caret" />
-          <span>{osk.value.slice(osk.caret)}</span>
-          {osk.max !== null && (
-            <small className="osk-count">
-              {osk.value.length}/{osk.max}
-            </small>
-          )}
-        </div>
+        {osk.multiline ? (
+          <Lines osk={osk} />
+        ) : (
+          <div className="osk-value">
+            <span>{osk.value.slice(0, osk.caret)}</span>
+            <span className="caret" />
+            <span>{osk.value.slice(osk.caret)}</span>
+            {osk.max !== null && (
+              <small className="osk-count">
+                {osk.value.length}/{osk.max}
+              </small>
+            )}
+          </div>
+        )}
         <div className={`osk-keys ${osk.kind}`}>
           {rowsFor(osk).map((row, i) => (
             <div className="osk-row" key={i}>
@@ -94,6 +121,11 @@ function Keyboard({ osk }: { osk: Osk }) {
                   {t('osk.space')}
                 </button>
               </>
+            )}
+            {osk.multiline && (
+              <button className="key" aria-label={t('osk.newLine')} onClick={() => type('\n')}>
+                ↵
+              </button>
             )}
             <button className="key" aria-label={t('osk.delete')} onClick={backspace}>
               ⌫
@@ -120,6 +152,13 @@ function Keyboard({ osk }: { osk: Osk }) {
               {t(h.key)}
             </span>
           ))}
+          {osk.multiline && (
+            <span className="pad-hint">
+              <Glyph button="lt" family={family} />
+              <Glyph button="rt" family={family} />
+              {t('osk.line')}
+            </span>
+          )}
         </div>
       </div>
     </div>

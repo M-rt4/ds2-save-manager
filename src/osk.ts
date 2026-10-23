@@ -20,6 +20,8 @@ export interface Osk {
   symbols: boolean;
   /** Whether a minus sign may be typed (number fields that go below zero). */
   negative: boolean;
+  /** A text area (the JSON editor): it starts at its caret, shows lines around it, and LT/RT move by line. */
+  multiline: boolean;
 }
 
 export const useOsk = create<{ osk: Osk | null }>(() => ({ osk: null }));
@@ -48,7 +50,9 @@ export function openKeyboard(target: Field) {
     negative = target.min === '' || Number(target.min) < 0;
   }
   const value = target.value;
-  useOsk.setState({ osk: { target, kind, value, caret: value.length, max, shift: false, symbols: false, negative } });
+  const multiline = target instanceof HTMLTextAreaElement;
+  const caret = multiline ? target.selectionStart : value.length;
+  useOsk.setState({ osk: { target, kind, value, caret, max, shift: false, symbols: false, negative, multiline } });
 }
 
 function update(patch: (o: Osk) => Partial<Osk>) {
@@ -70,6 +74,23 @@ export function backspace() {
 
 export function moveCaret(step: number) {
   update((o) => ({ caret: Math.max(0, Math.min(o.value.length, o.caret + step)) }));
+}
+
+/** Up or down a line in a text area, keeping the column where the line is long enough. */
+export function moveLine(step: 1 | -1) {
+  update((o) => {
+    const start = o.value.lastIndexOf('\n', o.caret - 1) + 1;
+    const column = o.caret - start;
+    if (step < 0) {
+      if (start === 0) return { caret: 0 };
+      const prev = o.value.lastIndexOf('\n', start - 2) + 1;
+      return { caret: Math.min(prev + column, start - 1) };
+    }
+    const next = o.value.indexOf('\n', o.caret);
+    if (next < 0) return { caret: o.value.length };
+    const end = o.value.indexOf('\n', next + 1);
+    return { caret: Math.min(next + 1 + column, end < 0 ? o.value.length : end) };
+  });
 }
 
 /** Y: off, then one capital, then Caps Lock, then off again. */
@@ -101,7 +122,11 @@ export async function ok() {
     // Let the field render its new value before its Enter handler reads it.
     await new Promise((r) => requestAnimationFrame(() => r(undefined)));
   }
-  target.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+  // Enter commits a single-line field; in a text area it would start a new line instead.
+  if (!o.multiline) target.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
   target.blur();
-  if (target.isConnected) target.focus({ preventScroll: true });
+  if (target.isConnected) {
+    target.focus({ preventScroll: true });
+    if (o.multiline) (target as HTMLTextAreaElement).setSelectionRange(o.caret, o.caret);
+  }
 }

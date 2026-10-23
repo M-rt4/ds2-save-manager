@@ -367,14 +367,16 @@ export function press(button: PadButton) {
       lb: () => osk.moveCaret(-1),
       rb: () => osk.moveCaret(1),
       start: () => void osk.ok().then(settle),
-      select: () => (osk.cancel(), settle())
+      select: () => (osk.cancel(), settle()),
+      lt: () => typing.multiline && osk.moveLine(-1),
+      rt: () => typing.multiline && osk.moveLine(1)
     };
     const run = action[button];
     if (run) {
       run();
       return;
     }
-    if (button === 'lt' || button === 'rt' || button === 'l3' || button === 'r3') return;
+    if (button === 'l3' || button === 'r3') return;
     if (!current()) settle();
   }
   if (!current() && button !== 'east') {

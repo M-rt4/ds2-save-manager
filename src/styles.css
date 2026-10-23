@@ -2246,6 +2246,21 @@ body[data-pad] * {
   background: var(--raised);
   box-shadow: 0 0 8px var(--raised);
 }
+/* A text area's lines around the caret, in the editor's monospace. */
+.osk-value.multi {
+  display: block;
+  font-family: var(--mono, Consolas, monospace);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--ash);
+}
+.osk-value.multi .cur {
+  display: flex;
+  color: #f1ebdb;
+}
+.osk-value.multi .caret {
+  margin: 2px 0;
+}
 .osk-count {
   margin-left: auto;
   padding-left: 16px;

@@ -402,6 +402,8 @@ const en = {
   'osk.cursor': 'Cursor',
   'osk.ok': 'OK',
   'osk.cancel': 'Cancel',
+  'osk.line': 'Line',
+  'osk.newLine': 'New line',
 
   'browse.titleFile': 'Open a save file',
   'browse.titleFolder': 'Choose a folder',
@@ -846,6 +848,8 @@ const tr: Record<Key, string> = {
   'osk.cursor': 'İmleç',
   'osk.ok': 'Tamam',
   'osk.cancel': 'İptal',
+  'osk.line': 'Satır',
+  'osk.newLine': 'Yeni satır',
 
   'browse.titleFile': 'Kayıt dosyası aç',
   'browse.titleFolder': 'Klasör seç',
