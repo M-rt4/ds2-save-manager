@@ -58,8 +58,21 @@ fn main() {
             // open, so the user can watch changes land while working in other windows.
             if cfg!(debug_assertions) {
                 window = window.always_on_top(true).focused(false);
+            } else {
+                // The page shows it once its first frame is drawn (index.html), so it never
+                // opens as a black rectangle while WebView2 starts.
+                window = window.visible(false);
             }
-            window.build()?;
+            let window = window.build()?;
+            if !cfg!(debug_assertions) {
+                // Should the page never get that far, the window still appears.
+                std::thread::spawn(move || {
+                    std::thread::sleep(std::time::Duration::from_secs(3));
+                    if !window.is_visible().unwrap_or(false) {
+                        let _ = window.show();
+                    }
+                });
+            }
             gamepad::start(app.handle());
             Ok(())
         })

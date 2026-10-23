@@ -66,8 +66,20 @@ interface Confirm {
   onYes: () => void;
 }
 
+/** Where startup stands, for the loading screen: each step's state. */
+export interface Boot {
+  /** Installed games, their exe and regulation versions. */
+  games: 'active' | 'done';
+  /** The save files in the saves folders. */
+  saves: 'active' | 'done';
+  /** The save the app opens on (the first one found), or none to open. */
+  open: 'waiting' | 'active' | 'done' | 'none';
+}
+
 interface State {
   lang: Lang;
+  /** Set while the app starts; null once it is ready and the loading screen gives way. */
+  boot: Boot | null;
   saves: FoundSave[];
   savesLoaded: boolean;
   doc: SaveView | null;
@@ -135,6 +147,7 @@ let toastId = 0;
 export const useStore = create<State>((set, get) => ({
   lang: initialLang(),
   saves: [],
+  boot: { games: 'active', saves: 'active', open: 'waiting' },
   savesLoaded: false,
   doc: null,
   slot: null,
@@ -163,9 +176,38 @@ export const useStore = create<State>((set, get) => ({
   t: (key, vars) => translate(get().lang, key, vars),
 
   init: async () => {
-    await get().refreshSaves();
+    const started = Date.now();
+    const step = (patch: Partial<Boot>) => {
+      const boot = get().boot;
+      if (boot) set({ boot: { ...boot, ...patch } });
+    };
+    // Both scans at once. Finding the installs (and reading their versions) is the slow one,
+    // and a Steam library on a dead network or USB drive can hold it up for long: the screen
+    // waits for it only so long, and the Games panel fills in whenever it arrives.
+    const games = gamesApi
+      .listGames()
+      .catch(() => [] as GameInfo[])
+      .then((games) => {
+        set({ games, gamesLoaded: true });
+        step({ games: 'done' });
+      });
+    const saves = api
+      .listSaves()
+      .catch(() => [] as FoundSave[])
+      .then((saves) => {
+        set({ saves, savesLoaded: true });
+        step({ saves: 'done' });
+      });
+    await Promise.all([saves, Promise.race([games, new Promise((r) => setTimeout(r, 4000))])]);
     const first = get().saves[0];
-    if (first) await get().openSave(first.path);
+    step({ open: first ? 'active' : 'none' });
+    if (first) {
+      await get().openSave(first.path);
+      step({ open: 'done' });
+    }
+    // Long enough to read what was found when it all went fast; never a wait of its own.
+    await new Promise((r) => setTimeout(r, Math.max(0, 700 - (Date.now() - started))));
+    set({ boot: null });
     const poll = async () => set({ gameRunning: await api.gameRunning().catch(() => false) });
     void poll();
     setInterval(poll, 4000);
