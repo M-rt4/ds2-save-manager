@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { backspace, cancel, moveCaret, ok, toggleShift, toggleSymbols, type, useOsk, type Osk } from '../osk';
-import { usePad, type PadButton } from '../pad';
+import { usePad, type PadButton, type PadFamily } from '../pad';
 import { useT, type Key } from '../i18n';
 import { Glyph } from './PadHints';
 
@@ -34,6 +34,15 @@ const HINTS: { button: PadButton; key: Key; kinds?: Osk['kind'][] }[] = [
   { button: 'start', key: 'osk.ok' },
   { button: 'select', key: 'osk.cancel' }
 ];
+
+/** The pad button that does a key's job without moving to it, drawn in the key's corner. */
+function Shortcut({ button, family }: { button: PadButton; family: PadFamily }) {
+  return (
+    <span className="key-pad" aria-hidden>
+      <Glyph button={button} family={family} />
+    </span>
+  );
+}
 
 /** A text area's lines around the caret: the whole document would not fit, nor be readable. */
 function Lines({ osk }: { osk: Osk }) {
@@ -82,7 +91,7 @@ function Keyboard({ osk }: { osk: Osk }) {
 
   return (
     <div className="osk-layer">
-      <div className="panel osk" role="dialog" aria-label={t('osk.title')}>
+      <div className="panel osk" role="dialog" aria-label={t('osk.title')} data-family={family}>
         {osk.multiline ? (
           <Lines osk={osk} />
         ) : (
@@ -104,6 +113,7 @@ function Keyboard({ osk }: { osk: Osk }) {
               {row.map((c, j) => (
                 <button key={j} className="key" onClick={() => type(c)}>
                   {c === ' ' ? '␣' : c}
+                  {c === ' ' && <Shortcut button="west" family={family} />}
                 </button>
               ))}
             </div>
@@ -113,12 +123,14 @@ function Keyboard({ osk }: { osk: Osk }) {
               <>
                 <button className="key" aria-pressed={osk.shift !== false} onClick={toggleShift}>
                   {osk.shift === 'caps' ? '⇪' : '⇧'}
+                  <Shortcut button="north" family={family} />
                 </button>
                 <button className="key" aria-pressed={osk.symbols} onClick={toggleSymbols}>
                   {osk.symbols ? 'abc' : '123'}
                 </button>
                 <button className="key space" onClick={() => type(' ')}>
                   {t('osk.space')}
+                  <Shortcut button="west" family={family} />
                 </button>
               </>
             )}
@@ -129,18 +141,23 @@ function Keyboard({ osk }: { osk: Osk }) {
             )}
             <button className="key" aria-label={t('osk.delete')} onClick={backspace}>
               ⌫
+              <Shortcut button="east" family={family} />
             </button>
             <button className="key" aria-label="←" onClick={() => moveCaret(-1)}>
               ‹
+              <Shortcut button="lb" family={family} />
             </button>
             <button className="key" aria-label="→" onClick={() => moveCaret(1)}>
               ›
+              <Shortcut button="rb" family={family} />
             </button>
             <button className="key ok" onClick={() => void ok()}>
               {t('osk.ok')}
+              <Shortcut button="start" family={family} />
             </button>
             <button className="key" onClick={cancel}>
               {t('osk.cancel')}
+              <Shortcut button="select" family={family} />
             </button>
           </div>
         </div>
