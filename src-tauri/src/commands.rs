@@ -298,4 +298,14 @@ impl AppState {
         }
         Ok(())
     }
+
+    /// Runs `f` on the decrypted file of an open save; when it reports a change, the save
+    /// counts as edited until it is written.
+    pub(crate) fn edit_save(&self, id: &str, f: impl FnOnce(&mut SaveFile) -> CmdResult<bool>) -> CmdResult<bool> {
+        self.with_doc(id, |doc| {
+            let changed = f(&mut doc.save)?;
+            doc.dirty |= changed;
+            Ok(changed)
+        })
+    }
 }

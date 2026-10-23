@@ -1617,3 +1617,286 @@ button.place:hover {
 .fit .changes {
   margin-top: 10px;
 }
+
+/* ---------- Raw data ---------- */
+
+/* Bytes need a monospaced face; the game's font stays everywhere else. */
+.raw {
+  --mono: 'Cascadia Mono', 'Cascadia Code', Consolas, 'Courier New', monospace;
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr);
+  padding: 0;
+  overflow: hidden;
+}
+.raw .mono {
+  font-family: var(--mono);
+  font-size: 12.5px;
+}
+.raw-side {
+  display: grid;
+  grid-template-rows: minmax(0, 3fr) minmax(0, 2fr);
+  min-height: 0;
+  border-right: 1px solid var(--line-faint);
+}
+.raw-blocks {
+  overflow-y: auto;
+  padding: 6px 0;
+}
+.raw-block {
+  gap: 8px;
+  padding: 4px 12px;
+  font-size: 14.5px;
+}
+.raw-block .n {
+  flex: none;
+  width: 18px;
+  text-align: right;
+  color: var(--dim);
+  font-size: 13px;
+}
+.raw-block .nm {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.raw-chunks {
+  overflow-y: auto;
+  padding-bottom: 8px;
+  border-top: 1px solid var(--line-faint);
+}
+.raw-chunks .group-label {
+  padding: 8px 12px 2px;
+}
+.raw-chunks .note {
+  padding: 0 12px;
+}
+.raw-chunk-table {
+  margin-top: 2px;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+.raw-chunk-table th {
+  padding: 3px 4px;
+  font-family: var(--serif);
+  font-size: 13px;
+}
+.raw-chunk-table td,
+.raw-chunk-table td:first-child {
+  padding: 2px 4px;
+  color: var(--ash);
+  cursor: pointer;
+}
+.raw-chunk-table th:first-child,
+.raw-chunk-table td:first-child {
+  padding-left: 12px;
+}
+.raw-chunk-table tr:hover td {
+  color: var(--bone);
+}
+.raw-chunk-table tr.cur td {
+  color: var(--bone);
+  background: var(--glow);
+}
+
+.raw-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  container-type: inline-size;
+}
+.raw-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  padding: 10px 12px 8px;
+  border-bottom: 1px solid var(--line-faint);
+}
+.raw-tools .seg {
+  margin: 0;
+}
+.raw-tools .seg button {
+  padding: 3px 9px;
+  font-size: 14px;
+}
+.raw-tools .field {
+  width: auto;
+  padding: 3px 8px;
+  font-size: 14.5px;
+}
+.raw-goto {
+  flex: 0 0 118px;
+}
+.raw-query {
+  flex: 1 1 110px;
+  min-width: 90px;
+}
+.raw-found {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--ash);
+  font-size: 14px;
+  white-space: nowrap;
+}
+.raw-found .btn {
+  padding: 0 6px;
+  font-size: 17px;
+}
+
+.hex {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  font-family: var(--mono);
+  font-size: 12px;
+  cursor: text;
+}
+.hex:focus-visible {
+  outline: none;
+}
+.hex-space {
+  position: relative;
+}
+.hx-row {
+  position: absolute;
+  left: 0;
+  display: flex;
+  align-items: center;
+  height: 21px;
+  padding: 0 12px;
+  white-space: nowrap;
+}
+.hx-off {
+  margin-right: 10px;
+  color: var(--dim);
+}
+.hx-bytes,
+.hx-ascii {
+  display: inline-flex;
+}
+.hx-bytes .b {
+  width: 2.4ch;
+  text-align: center;
+}
+.hx-bytes .b:nth-child(8) {
+  margin-right: 0.6ch;
+}
+.hx-ascii {
+  margin-left: 10px;
+  color: var(--ash);
+}
+.hx-ascii .b {
+  width: 1ch;
+  text-align: center;
+}
+.hex .b.z {
+  color: var(--dim);
+}
+/* Chunk headers sit on a faint band; each chunk starts at a bright edge. */
+.hex .b.hd {
+  background: rgba(236, 228, 206, 0.05);
+}
+.hex .b.cs {
+  box-shadow: inset 1px 0 0 var(--line-strong);
+}
+.hex .b.chg {
+  color: var(--raised);
+}
+.hex .b.sel {
+  background: rgba(124, 173, 240, 0.26);
+  color: #f1ebdb;
+}
+.hex .b.sel.chg {
+  color: #d4e5ff;
+}
+@container (max-width: 470px) {
+  .hx-ascii {
+    display: none;
+  }
+}
+
+.raw-inspector {
+  padding: 8px 12px 10px;
+  border-top: 1px solid var(--line-faint);
+}
+.raw-inspector .note {
+  margin: 6px 0 0;
+}
+.raw-where {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 16px;
+  margin-bottom: 6px;
+  color: var(--ash);
+  font-size: 14px;
+}
+.raw-where .mono {
+  color: var(--bone);
+}
+.raw-nums {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
+  gap: 5px 12px;
+}
+.raw-num {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: var(--ash);
+  font-size: 13.5px;
+}
+.raw-num > span {
+  flex: none;
+  width: 28px;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+.raw-num.wide {
+  grid-column: 1 / -1;
+}
+.raw-num.wide > span {
+  width: auto;
+  font-family: var(--serif);
+  font-size: 13.5px;
+}
+.raw-num .field {
+  min-width: 0;
+  padding: 2px 6px;
+}
+.raw-hexedit {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 5px;
+}
+.raw-hexedit .raw-num {
+  flex: 1;
+}
+.raw-hexedit .btn {
+  padding: 3px 14px;
+}
+
+.raw-warning .panel-head {
+  padding: 18px 26px 0;
+}
+.raw-warning ul {
+  display: grid;
+  gap: 8px;
+  margin: 14px 0 0;
+  padding: 0 30px 0 46px;
+  font-size: 15.5px;
+}
+.raw-warning li::marker {
+  color: var(--ember);
+}
+.raw-note {
+  margin: 8px 12px 0;
+  padding: 6px 10px;
+  font-size: 14px;
+}

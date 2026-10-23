@@ -15,7 +15,7 @@ import {
 } from './api';
 import { errorText, initialLang, translate, type Key, type Lang } from './i18n';
 
-export type Tab = 'status' | 'inventory' | 'transfer' | 'file' | 'backups';
+export type Tab = 'status' | 'inventory' | 'transfer' | 'file' | 'backups' | 'raw';
 
 /** Per-user preferences, kept in this machine's WebView storage. */
 export interface Settings {

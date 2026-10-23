@@ -17,6 +17,7 @@ pub mod header;
 pub mod inventory;
 pub mod items;
 pub mod maps;
+pub mod raw;
 pub mod regulation;
 pub mod transfer;
 
