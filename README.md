@@ -22,6 +22,31 @@ Asıl amaç: orijinal sürümde başlanmış bir yolculuğa Scholar of the First
 
 Güvenlik: oyun açıkken yazma kapalıdır; dosya açıldıktan sonra oyun tarafından değiştirildiyse ne yazılır ne de aktarılır; her yazmadan önce önceki dosya kaydın yanındaki `DS2 Save Manager Backups` klasörüne yedeklenir; yazılan dosya diske gitmeden önce yeniden okunup doğrulanır.
 
+## Oyun kolu
+
+Uygulamanın tamamı yalnızca kolla da kullanılabilir (Xbox, PlayStation ve Steam Deck kolları; Windows'ta Windows.Gaming.Input, Linux ve Steam Deck'te evdev). Ayrı bir sürüm ya da ayar yoktur; uygulama **son kullanılan giriş cihazını** izler:
+
+- Kolun herhangi bir tuşuna basmak ya da bir çubuğu ölü bölgenin ötesine itmek **kol kipine** geçirir: alt çubukta takılı kolun kendi tuş simgeleri (Xbox, PlayStation ya da Steam Deck), menünün parıltısıyla bir imleç; fare imleci gizlenir. Steam Deck çubuğunun hafif kayması kipi değiştirmez.
+- Fareyi birkaç pikselden fazla oynatmak, tıklamak, tekerlek ya da bir tuşa basmak **klavye/fare kipine** döndürür: `Ctrl S` gibi klavye ipuçları, yerel dosya pencereleri.
+- Kol takılı ama kullanılmıyorsa hiçbir şey değişmez; kol çıkarılınca klavye/fare kipine dönülür. Uygulama yalnızca penceresi öndeyken kolu dinler; oyunu kolla oynarken arkada bir şey yapmaz.
+
+| Tuş | Ne yapar |
+|---|---|
+| D-pad / sol çubuk | Ekrandaki öğeler arasında konumlarına göre gezinir |
+| A / ✕ | Seçer; bir metin ya da sayı alanında ekran klavyesini açar |
+| B / ○ | Geri: diyaloğu ya da ekleme görünümünü kapatır, onayda "Hayır" |
+| LB / RB (L1 / R1) | Sekmeler (açıksa Ayarlar'ın sekmeleri) |
+| LT / RT (L2 / R2) ya da L3 / R3 | Oyunlar, Karakterler ve Detay panelleri arasında |
+| Start / Menu | Değişiklikleri kaydet |
+| View / Select | Ayarlar |
+| Sağ çubuk | Kaydırma |
+| Sol / sağ (sayı alanı ya da liste üzerinde) | Değeri bir azaltır / artırır |
+
+- **Ekran klavyesi**, oyunun ad girme ekranı gibi alt yarıda açılır; düzenlenen değer büyük gösterilir. Harf düzeni Türkçe Q'dur (`ı`/`i`, büyük harfte `I`/`İ`; uygulama İngilizce olsa da). Rakam ve semboller ayrı bir sayfadadır. Sayı alanlarında sayı takımı, hesap kimliğinde 17 haneli rakam takımı, hex alanlarında `0-9 A-F` açılır. Tuşlar: A yaz, B sil, X boşluk, Y büyük harf (bir harf → Caps → kapalı), LB/RB imleç, LT/RT satır (JSON metninde), Start Tamam, View İptal. Tamam'da değer alana yazıp Enter'a basmak gibi işlenir, yani alanın kendi sınırları ve doğrulaması geçerlidir; İptal alanı değiştirmez.
+- **Dosya ve klasör seçimi** (kayıt açma, oyun klasörü ekleme, aktarım hedefi, JSON içe/dışa aktarma) kol kipinde uygulama içi bir tarayıcıda yapılır: kayıt klasörleri, kurulu oyunlar, ev klasörü, Windows'ta sürücüler, Linux'ta `/`, `/home` ve `/run/media` (Steam Deck'in microSD kartı). Yalnızca listeler, hiçbir şeyi değiştirmez.
+- "Gezginde göster" gibi başka bir uygulama açan düğmeler kol kipinde gizlenir (oyun modunda kullanıcıyı uygulamadan çıkarırlar). Pencerenin kapatma düğmesine kolla ulaşılmaz; çıkmak için **Ayarlar → Genel → Çık**. Ayarlar → Genel ayrıca algılanan kolu gösterir.
+- Steam Input bir kolu yönetirken oyunlara fiziksel kolu yok saymalarını SDL'in `SDL_GAMECONTROLLER_IGNORE_DEVICES` / `…_EXCEPT` değişkenleriyle söyler ([SDL wiki](https://wiki.libsdl.org/SDL2/SDL_HINT_GAMECONTROLLER_IGNORE_DEVICES)). Uygulama bu listelere uyar; Steam üzerinden başlatıldığında aynı basış hem fiziksel koldan hem Steam'in sanal kolundan iki kez gelmez.
+
 ## Kurulum
 
 Dosyalar GitHub'daki sürüm sayfasında (Releases) bulunur.
@@ -40,7 +65,7 @@ Dosyalar GitHub'daki sürüm sayfasında (Releases) bulunur.
 4. Steam'e ekleyin: masaüstündeki Steam'de **Oyunlar → Kütüphaneme Steam Dışı Bir Oyun Ekle…** (*Add a Non-Steam Game to My Library*) → **Gözat**, dosya türünü "Tüm dosyalar" yapıp AppImage'ı seçin → **Seçili Programları Ekle**.
 5. Oyun moduna dönün; uygulama Kütüphane'de **Steam Dışı** altında.
 
-Kontroller: Oyun modunda Steam Input çalışır. Uygulamanın kontrolcü ayarlarından **Web Browser** şablonunu seçin: sağ trackpad fareyi oynatır, R2 sol tık, L2 sağ tıktır. Ekran klavyesi **STEAM + X** ile açılır. Uygulama oyun açıkken kayda yazmaz; değişiklikleri kaydetmeden önce oyundan çıkın.
+Kontroller: uygulama Deck'in kollarını kendisi okur (aşağıdaki [Oyun kolu](#oyun-kolu) bölümü). Oyun modunda Deck'in tuşları Steam Input üzerinden gelir: Steam yönettiği her kol için uygulamaya sanal bir Xbox kolu ("Steam Virtual Gamepad", `28de:11ff`) verir ve fiziksel kolun yok sayılmasını ister ([SDL #10073](https://github.com/libsdl-org/SDL/issues/10073), [Steamworks: Gamepad Emulation](https://partner.steamgames.com/doc/features/steam_controller/steam_input_gamepad_emulation_bestpractices)). Bu yüzden uygulamanın Steam'deki kontrolcü düzeni bir **kol (Gamepad)** şablonu olmalı; örneğin **Gamepad** ya da **Gamepad with Mouse Trackpad** (Steam'de uygulama → kontrolcü simgesi → Şablonlar). **Web Browser** gibi klavye/fare şablonları tuşları tuş vuruşuna ve tıklamaya çevirir; o zaman uygulama klavye/fare kipinde kalır ve kol ipuçları hiç gelmez. Steam Input'u kapatmak gerekmez. Ekran klavyesi uygulamanın kendisinde vardır; **STEAM + X** gerekmez. Uygulama oyun açıkken kayda yazmaz; değişiklikleri kaydetmeden önce oyundan çıkın.
 
 Pencere boş ya da beyaz kalırsa: uygulama AppImage içinde ve oyun modunda WebKit'in DMA-BUF çizicisini zaten kapatır (`WEBKIT_DISABLE_DMABUF_RENDERER=1`). Yine de boşsa Steam'deki kısayolun **Özellikler → Başlatma Seçenekleri** alanına `WEBKIT_DISABLE_COMPOSITING_MODE=1 %command%` yazın. Diğer Linux masaüstlerinde EGL hatasıyla açılmıyorsa `LD_PRELOAD=/usr/lib/libwayland-client.so.0` ile başlatmak bildirilen bir geçici çözümdür.
 
