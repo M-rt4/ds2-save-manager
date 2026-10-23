@@ -1,7 +1,7 @@
 //! Gamepads, read natively with gilrs (Windows.Gaming.Input on Windows, evdev on Linux and the
 //! Steam Deck, Steam Input's virtual pad included) and handed to the UI as `gamepad` events.
-//! Nothing is sent while the window lacks focus, so a pad held for the game never drives the
-//! app behind it. The UI turns the events into focus moves and actions (src/pad.ts).
+//! Nothing is sent while the app is not the window in front, so a pad held for the game never
+//! drives the app behind it. The UI turns the events into focus moves and actions (src/pad.ts).
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
@@ -43,13 +43,10 @@ pub fn start(app: &AppHandle) {
     let focused = Arc::new(AtomicBool::new(false));
     if let Some(window) = app.get_webview_window("main") {
         focused.store(window.is_focused().unwrap_or(false), Ordering::Relaxed);
-        let (focused, app) = (focused.clone(), app.clone());
+        let focused = focused.clone();
         window.on_window_event(move |e| {
             if let WindowEvent::Focused(f) = e {
                 focused.store(*f, Ordering::Relaxed);
-                if !f {
-                    let _ = app.emit("gamepad", PadEvent::Blur);
-                }
             }
         });
     }
@@ -72,8 +69,17 @@ fn run(app: &AppHandle, focused: &AtomicBool, pads: &Mutex<Vec<PadInfo>>) {
         all.into_iter().map(|(_, info)| info).collect::<Vec<_>>()
     };
     *pads.lock().unwrap() = list(&gilrs);
+    let mut front = false;
     loop {
-        let Some(event) = gilrs.next_event_blocking(Some(Duration::from_millis(500))) else { continue };
+        let event = gilrs.next_event_blocking(Some(Duration::from_millis(250)));
+        // Leaving the front lets go of whatever was held, or a held direction would keep
+        // repeating in the UI with its release never sent.
+        let now_front = in_front(focused);
+        if front && !now_front {
+            let _ = app.emit("gamepad", PadEvent::Blur);
+        }
+        front = now_front;
+        let Some(event) = event else { continue };
         let is_input = !matches!(event.event, EventType::Connected | EventType::Disconnected);
         if is_input && skip.covers(&gilrs.gamepad(event.id)) {
             continue;
@@ -91,11 +97,36 @@ fn run(app: &AppHandle, focused: &AtomicBool, pads: &Mutex<Vec<PadInfo>>) {
             _ => None,
         };
         if let Some(out) = out {
-            if focused.load(Ordering::Relaxed) {
+            if front {
                 let _ = app.emit("gamepad", out);
             }
         }
     }
+}
+
+/// Whether the user is in this app's window. On Windows tao's focus events can't say: as soon
+/// as the window activates, WebView2 takes the keyboard focus from it (wry's `MoveFocus`), and
+/// the window reports focus lost while it is still in front, which used to drop every press.
+/// There the process owning the foreground window decides.
+#[cfg(windows)]
+fn in_front(_focused: &AtomicBool) -> bool {
+    use windows_sys::Win32::UI::WindowsAndMessaging::{GetForegroundWindow, GetWindowThreadProcessId};
+    let mut pid = 0;
+    // SAFETY: both calls only read window state; a null or stale handle yields pid 0.
+    unsafe {
+        let hwnd = GetForegroundWindow();
+        if hwnd.is_null() {
+            return false;
+        }
+        GetWindowThreadProcessId(hwnd, &mut pid);
+    }
+    pid == std::process::id()
+}
+
+/// GTK reports the toplevel's focus whichever widget inside it holds the keyboard.
+#[cfg(not(windows))]
+fn in_front(focused: &AtomicBool) -> bool {
+    focused.load(Ordering::Relaxed)
 }
 
 fn button(b: Button) -> Option<&'static str> {
