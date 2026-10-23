@@ -1275,6 +1275,9 @@ input[type='checkbox'] {
 .item-card {
   display: grid;
   place-items: center;
+  /* In a flex column (the add view's detail) it would otherwise shrink to nothing once the stats
+     below overflow, since its overflow: hidden drops its minimum height to zero. */
+  flex-shrink: 0;
   width: 36px;
   height: 54px;
   border: 1px solid var(--line);
