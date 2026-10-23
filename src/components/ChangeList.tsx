@@ -35,6 +35,7 @@ export function changeText(t: T, c: Change): string {
         to: c.to
       });
     case 'slot':
+      if (c.before && c.after && c.before === c.after) return t('change.slotUpdate', { slot: c.slot + 1, name: c.after });
       if (c.before && c.after) return t('change.slotReplace', { slot: c.slot + 1, before: c.before, after: c.after });
       if (c.after) return t('change.slotFill', { slot: c.slot + 1, after: c.after });
       return t('change.slotClear', { slot: c.slot + 1, before: c.before ?? '' });

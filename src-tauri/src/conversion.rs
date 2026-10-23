@@ -10,7 +10,7 @@ use std::sync::Mutex;
 use ds2save::save::backups::Reason;
 use ds2save::save::character;
 use ds2save::save::disk;
-use ds2save::save::file::{SaveFile, HEADER_ENTRY, SLOT_COUNT};
+use ds2save::save::file::{character_entry, world_entry, SaveFile, HEADER_ENTRY, SLOT_COUNT};
 use ds2save::save::regulation::{self, RegulationInfo};
 use ds2save::save::transfer::{self, Compatibility, TargetFormat};
 use ds2save::save::{header, Edition, SaveError};
@@ -235,7 +235,9 @@ fn build(source: &SaveFile, req: &ConversionRequest, base: Option<&SaveFile>) ->
                 let before = character::summary(b, s);
                 let after = character::summary(&merged, s);
                 let (before, after) = (before.occupied.then_some(before.name), after.occupied.then_some(after.name));
-                if before != after || after.is_some() {
+                let same_data = b.block(character_entry(s)) == merged.block(character_entry(s))
+                    && b.block(world_entry(s)) == merged.block(world_entry(s));
+                if !same_data {
                     changes.push(Change::Slot { slot: s, before, after });
                 }
             }
@@ -270,11 +272,10 @@ fn build(source: &SaveFile, req: &ConversionRequest, base: Option<&SaveFile>) ->
         (Some(b), Some(_)) => b,
         _ => &out,
     };
-    let before_key = reference.edition;
     let before_reg = transfer::regulation_info(reference);
     let before_title = ds2save::save::chunks::find(reference.block(22), header::TITLE_CHUNK).map(|c| c.version);
     let before_cap = reference.block(regulation::ENTRY).len();
-    let source_key = if base.is_some() { before_key } else { source.source_edition };
+    let source_key = source.source_edition;
     transfer::conform(&mut out, &fmt)?;
     if source_key != fmt.edition {
         changes.push(Change::Key { from: source_key, to: fmt.edition });
@@ -315,6 +316,13 @@ fn build(source: &SaveFile, req: &ConversionRequest, base: Option<&SaveFile>) ->
         local: local_accounts(),
     };
     Ok(Built { out, changes, format, accounts })
+}
+
+/// A save written over itself for its own release is a repair (it gets the installed game's
+/// format and its folder's account); written over itself as the other release it would
+/// end up named for the wrong game.
+fn same_file_other_release(req: &ConversionRequest, source: &SaveFile, path: &Path) -> bool {
+    doc_id(path) == req.source_id && req.slot.is_none() && req.target_edition != source.source_edition
 }
 
 fn source_of(state: &AppState, id: &str) -> CmdResult<SaveFile> {
@@ -360,7 +368,7 @@ pub async fn plan_conversion(state: State<'_, AppState>, req: ConversionRequest)
         blocked: None,
         target_open_and_dirty,
     };
-    if doc_id(&path) == req.source_id && req.slot.is_none() {
+    if same_file_other_release(&req, &source, &path) {
         plan.blocked = Some(SaveError::new("sameFile", "The target is the source file itself."));
         return Ok(plan);
     }
@@ -383,7 +391,7 @@ pub async fn run_conversion(state: State<'_, AppState>, req: ConversionRequest) 
     crate::commands::ensure_game_closed()?;
     let source = source_of(&state, &req.source_id)?;
     let path = PathBuf::from(&req.target_path);
-    if doc_id(&path) == req.source_id && req.slot.is_none() {
+    if same_file_other_release(&req, &source, &path) {
         return Err(SaveError::new("sameFile", "The target is the source file itself."));
     }
     if state.is_dirty(&doc_id(&path)) {

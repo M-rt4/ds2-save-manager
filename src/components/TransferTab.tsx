@@ -44,7 +44,9 @@ export function TransferTab({ doc }: { doc: SaveView }) {
     void api.defaultTarget(doc.path, targetEdition).then(setTargetPath);
   }, [doc.path, targetEdition]);
 
-  const gameDir = settings.gameDirs[targetEdition] ?? null;
+  // The folder the user chose wins; otherwise the install the Games panel found.
+  const detected = useStore((s) => s.games.find((g) => g.edition === targetEdition)?.installs[0]?.path ?? null);
+  const gameDir = settings.gameDirs[targetEdition] ?? detected;
   const request: ConversionRequest = {
     sourceId: doc.id,
     slot: kind === 'single' && fromSlot !== null && toSlot !== null ? [fromSlot, toSlot] : null,

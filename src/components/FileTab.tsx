@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import { revealItemInDir } from '@tauri-apps/plugin-opener';
-import { api, type SaveView } from '../api';
+import { api, type ConversionPlan, type ConversionRequest, type SaveView } from '../api';
 import { useStore } from '../store';
-import { useT } from '../i18n';
+import { errorText, useT } from '../i18n';
 import { editionName } from '../game';
+import { ChangeList } from './ChangeList';
 
 export function FileTab({ doc }: { doc: SaveView }) {
   const t = useT();
@@ -51,6 +53,8 @@ export function FileTab({ doc }: { doc: SaveView }) {
         </div>
       )}
 
+      <FitToGame doc={doc} />
+
       <h3 style={{ margin: '22px 0 2px', fontWeight: 400, fontStyle: 'normal', color: 'var(--ash)', fontSize: 15 }}>
         {t('file.entries')}
       </h3>
@@ -93,6 +97,87 @@ export function FileTab({ doc }: { doc: SaveView }) {
           ))}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+/**
+ * Writes the save over itself in the installed game's format and for its folder's account:
+ * the repair for a save that came from another player or another conversion tool.
+ */
+function FitToGame({ doc }: { doc: SaveView }) {
+  const t = useT();
+  const store = useStore();
+  const lang = useStore((s) => s.lang);
+  const settings = useStore((s) => s.settings);
+  const detected = useStore((s) => s.games.find((g) => g.edition === doc.sourceEdition)?.installs[0]?.path ?? null);
+  const [plan, setPlan] = useState<ConversionPlan | null>(null);
+  const [busy, setBusy] = useState(false);
+  const request: ConversionRequest = {
+    sourceId: doc.id,
+    slot: null,
+    targetEdition: doc.sourceEdition,
+    targetPath: doc.path,
+    account: null,
+    gameDir: settings.gameDirs[doc.sourceEdition] ?? detected
+  };
+  const changes = plan?.changes.filter((c) => c.kind !== 'keptTargetSystem') ?? [];
+
+  const check = async () => {
+    try {
+      setPlan(await api.planConversion(request));
+    } catch (e) {
+      store.fail(e);
+    }
+  };
+  const run = () =>
+    store.ask(t('confirm.transfer', { file: doc.fileName, folder: doc.folder }), async () => {
+      setBusy(true);
+      try {
+        const report = await api.runConversion(request);
+        store.setDoc(await api.getSave(doc.id));
+        if (store.slot !== null) await store.selectSlot(store.slot);
+        await store.refreshSaves();
+        setPlan(null);
+        if (useStore.getState().settings.showTransferReport) store.showReport({ path: report.path, changes: report.changes });
+        else store.toast(t('transfer.done', { path: report.path }));
+      } catch (e) {
+        store.fail(e);
+      } finally {
+        setBusy(false);
+      }
+    });
+
+  return (
+    <div className="fit">
+      <h3 className="step">{t('file.fitTitle')}</h3>
+      <p className="note" style={{ marginTop: 0 }}>
+        {t('file.fitLead', { edition: editionName(doc.sourceEdition) })}
+      </p>
+      {doc.dirty ? (
+        <p className="note">{t('file.fitDirty')}</p>
+      ) : (
+        <button className="btn" onClick={() => void check()}>
+          {t('file.fitCheck')}
+        </button>
+      )}
+      {plan &&
+        (plan.blocked ? (
+          <div className="warn" style={{ margin: '10px 0 0' }}>
+            {errorText(lang, plan.blocked)}
+          </div>
+        ) : changes.length === 0 ? (
+          <p className="note">{t('file.fitOk')}</p>
+        ) : (
+          <>
+            <ChangeList changes={changes} extra={[t('transfer.backupFirst', { file: doc.fileName })]} />
+            <div className="go">
+              <button className="btn ember" disabled={busy || store.gameRunning} onClick={run}>
+                {t('file.fitRun', { file: doc.fileName })}
+              </button>
+            </div>
+          </>
+        ))}
     </div>
   );
 }

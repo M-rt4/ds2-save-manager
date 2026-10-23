@@ -1602,3 +1602,18 @@ button.place:hover {
   font-weight: 400;
   color: var(--ash);
 }
+
+.fit {
+  margin-top: 22px;
+  padding-top: 4px;
+  border-top: 1px solid var(--line-faint);
+}
+.fit .step {
+  margin: 14px 0 6px;
+  font-size: 17px;
+  font-weight: 500;
+  color: #ebe5d5;
+}
+.fit .changes {
+  margin-top: 10px;
+}
