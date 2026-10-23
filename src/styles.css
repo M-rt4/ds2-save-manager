@@ -1036,13 +1036,20 @@ kbd {
 
 /* ---------- Dialogs and toasts ---------- */
 
+/* Dialogs leave the title bar (40px) out: the window can still be moved, minimized or
+   maximized while one is open, and a click up there is not taken for a click outside the
+   dialog, which answers No. Its own app buttons wait until the dialog closes. */
 .scrim {
   position: fixed;
-  inset: 0;
+  inset: 40px 0 0;
   z-index: 40;
   display: grid;
   place-items: center;
   background: rgba(0, 0, 0, 0.6);
+}
+body:has(.scrim) .titlebar .lang {
+  pointer-events: none;
+  opacity: 0.4;
 }
 .dialog {
   width: min(560px, calc(100vw - 48px));
