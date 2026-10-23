@@ -13,6 +13,22 @@ use super::Edition;
 
 const OTHER: u64 = 0x0110_0001_0000_1337;
 const DAGGER: u32 = 1_000_000;
+const SHARD: u32 = 60_970_000;
+
+fn new_item(id: u32, quantity: Option<u16>) -> ItemDoc {
+    ItemDoc {
+        record: None,
+        id,
+        name: None,
+        quantity,
+        reinforcement: None,
+        infusion: None,
+        durability: None,
+        charges: None,
+        category: None,
+        region: None,
+    }
+}
 
 fn save() -> SaveFile {
     let mut blocks = testdata::save_blocks(&[(0, "Nele", 37), (3, "Pate", 12)], 64);
@@ -233,6 +249,40 @@ fn problems_are_named_where_they_are() {
     assert_eq!(text.lines().nth(e.line - 1).map(|l| l.contains("\"souls\"")), Some(true), "line {}", e.line);
     let e = preview(&s, &text.replacen("37,", "37,,", 1)).syntax.expect("syntax");
     assert!(e.line > 1 && e.column > 1);
+}
+
+#[test]
+fn adding_a_held_stackable_joins_its_stack() {
+    let mut s = save();
+    let shards = MAIN.start + 48; // 10 Titanite Shards
+    let add = |d: &mut Document, q| nele(d).inventory.as_mut().unwrap().push(new_item(SHARD, Some(q)));
+    let stacked = |p: &super::document::Preview| p.changes.iter().filter_map(|c| c.stack.clone()).map(|x| (x.added, x.total)).collect::<Vec<_>>();
+
+    // Two entries: 10 + 5, then + 90 up to the limit of 99.
+    let text = edited(&s, |d| {
+        add(d, 5);
+        add(d, 90);
+    });
+    let p = preview(&s, &text);
+    assert!(p.problems.is_empty(), "{:?}", p.problems);
+    assert_eq!(stacked(&p), [(5, 15), (90, 99)]);
+    // A count changed in the same document is the one the new entry joins.
+    let p = preview(&s, &edited(&s, |d| {
+        item(d, shards).quantity = Some(20);
+        add(d, 5);
+    }));
+    assert_eq!(stacked(&p), [(5, 25)]);
+    // A stack removed in the same document is not joined: the entry takes a record.
+    let p = preview(&s, &edited(&s, |d| {
+        nele(d).inventory.as_mut().unwrap().retain(|i| i.record != Some(shards));
+        add(d, 5);
+    }));
+    assert!(stacked(&p).is_empty());
+    assert!(p.changes.iter().any(|c| c.to == "\"Titanite Shard ×5\""), "{:?}", p.changes);
+
+    apply(&mut s, &text).unwrap();
+    let held: Vec<(usize, Option<u16>)> = character::read(&s, 0).inventory.items.iter().filter(|i| i.id == SHARD).map(|i| (i.offset, i.quantity)).collect();
+    assert_eq!(held, [(shards, Some(99))], "one stack, as the preview said");
 }
 
 #[test]

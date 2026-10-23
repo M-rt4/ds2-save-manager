@@ -219,7 +219,14 @@ export function JsonView({ doc }: { doc: SaveView }) {
             ))}
             {applying.map((c, i) => (
               <li key={`c${i}`} onClick={() => goTo(locate(lines, c))}>
-                <b>{c.path}</b> <span className="from">{c.from}</span> → <span className="to">{c.to}</span>
+                <b>{c.path}</b>{' '}
+                {c.stack ? (
+                  <span className="to">{t('json.addToStack', { name: c.stack.name, n: c.stack.added, total: c.stack.total })}</span>
+                ) : (
+                  <>
+                    <span className="from">{c.from}</span> → <span className="to">{c.to}</span>
+                  </>
+                )}
               </li>
             ))}
             {shownOnly.length > 0 && <li className="head">{t('json.shownOnly', { n: shownOnly.length })}</li>}

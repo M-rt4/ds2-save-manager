@@ -416,6 +416,8 @@ export interface DocChange extends DocPlace {
   to: string;
   /** False for fields the document only shows; those are not written. */
   applies: boolean;
+  /** A new entry that joins a stack the character already holds. */
+  stack?: { name: string; added: number; total: number };
 }
 
 export interface DocProblem extends DocPlace {

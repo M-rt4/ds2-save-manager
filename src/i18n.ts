@@ -408,7 +408,8 @@ const en = {
   'json.imported': '{file} is in the editor. Check the differences below, then apply.',
   'err.documentSyntax': 'The text is not valid JSON for this document.',
   'err.documentInvalid': 'The document has a problem; see the list under the editor.',
-  'err.notJson': 'Only .json files can be read or written here.'
+  'err.notJson': 'Only .json files can be read or written here.',
+  'json.addToStack': '{name}: {n} added to the stack already held ({total} in all)'
 } as const;
 
 export type Key = keyof typeof en;
@@ -818,7 +819,8 @@ const tr: Record<Key, string> = {
   'json.imported': '{file} editörde. Aşağıdaki farkları kontrol edip uygulayın.',
   'err.documentSyntax': 'Metin bu belge için geçerli JSON değil.',
   'err.documentInvalid': 'Belgede bir sorun var; editörün altındaki listeye bakın.',
-  'err.notJson': 'Burada yalnızca .json dosyaları okunup yazılabilir.'
+  'err.notJson': 'Burada yalnızca .json dosyaları okunup yazılabilir.',
+  'json.addToStack': '{name}: var olan yığına {n} eklenir (toplam {total})'
 };
 
 export type Lang = 'tr' | 'en';
