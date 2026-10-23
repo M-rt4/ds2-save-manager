@@ -2320,6 +2320,7 @@ body[data-pad] * {
   gap: 4px;
 }
 .osk-keys .key {
+  position: relative;
   min-width: 52px;
   height: 40px;
   padding: 0 10px;
@@ -2347,12 +2348,49 @@ body[data-pad] * {
   font-size: 15px;
 }
 .osk-row.actions .key {
+  padding-right: 20px;
   font-size: 15px;
 }
 .osk-keys.number .key,
 .osk-keys.digits .key,
 .osk-keys.hex .key {
   min-width: 64px;
+}
+/* The pad button that does a key's job directly (B on delete, Y on shift…), in its top-right
+   corner, so the keyboard teaches its own shortcuts. */
+.osk-keys .key-pad {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  color: #f2c48d;
+  line-height: 0;
+  pointer-events: none;
+}
+.osk-keys .key-pad .glyph {
+  width: 15px;
+  height: 15px;
+}
+.osk-keys .key-pad .glyph.wide {
+  width: 22px;
+}
+/* The key under the cursor carries the button that presses it, in the top-left corner. */
+.osk-keys .key[data-pad-focus]::before {
+  content: 'A';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  display: grid;
+  place-items: center;
+  width: 15px;
+  height: 15px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  color: #f2c48d;
+  font-size: 9.5px;
+  line-height: 1;
+}
+.osk[data-family='playstation'] .osk-keys .key[data-pad-focus]::before {
+  content: '✕';
 }
 .osk-hints {
   justify-content: center;
