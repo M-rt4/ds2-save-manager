@@ -152,17 +152,44 @@ pub fn ensure_writable(path: &Path) -> Result<()> {
     Ok(())
 }
 
-/// What development builds never write into. On Windows that is `%APPDATA%\DarkSoulsII`, made
-/// or not; on Linux the game's save folders that exist plus every place it would make one.
+/// What development builds never write into. On Windows that is `DarkSoulsII` in the roaming
+/// folder, made or not; on Linux the game's save folders that exist under the home folder plus
+/// every place it would make one.
 fn guard_roots() -> Vec<PathBuf> {
-    #[allow(unused_mut)]
-    let mut roots = game_saves_roots(None);
-    #[cfg(not(windows))]
-    if let Some(home) = std::env::var_os("HOME").map(PathBuf::from) {
-        let steam = super::platform::linux_steam_dirs(&home);
-        roots.extend(super::platform::linux_guard_roots(&home, &steam));
+    #[cfg(windows)]
+    {
+        guard_bases(std::env::var_os("APPDATA")).into_iter().map(|roaming| roaming.join("DarkSoulsII")).collect()
     }
-    roots
+    #[cfg(not(windows))]
+    {
+        let mut roots = Vec::new();
+        for home in guard_bases(std::env::var_os("HOME")) {
+            let steam = super::platform::linux_steam_dirs(&home);
+            for e in Edition::ALL {
+                roots.extend(super::platform::linux_save_roots(&home, &steam, e));
+            }
+            roots.extend(super::platform::linux_guard_roots(&home, &steam));
+        }
+        roots
+    }
+}
+
+/// The folders the guard looks in: the one the environment names (`APPDATA` on Windows, `HOME`
+/// elsewhere) and the one the system itself reports. A copy started with the variable pointed
+/// at a scratch folder, or without it, still keeps off the real saves, and the scratch folder
+/// stands in for the real one in tests.
+fn guard_bases(from_env: Option<std::ffi::OsString>) -> Vec<PathBuf> {
+    let mut bases: Vec<PathBuf> = from_env.filter(|v| !v.is_empty()).map(PathBuf::from).into_iter().collect();
+    // The shell's known folder, which never reads APPDATA.
+    #[cfg(windows)]
+    let system = dirs::data_dir();
+    // The user database's home, which never reads HOME.
+    #[cfg(unix)]
+    let system = super::platform::passwd_home();
+    if let Some(system) = system.filter(|s| !bases.contains(s)) {
+        bases.push(system);
+    }
+    bases
 }
 
 /// Whether `path` lies inside one of `roots`, with links and `..` resolved on both sides.
@@ -270,5 +297,26 @@ mod guard_tests {
             assert!(inside_any(&shouted, &roots));
         }
         fs::remove_dir_all(&base).unwrap();
+    }
+
+    #[test]
+    fn guard_keeps_the_real_folder_when_the_environment_points_elsewhere() {
+        #[cfg(windows)]
+        let system = dirs::data_dir().expect("the shell names a roaming folder");
+        #[cfg(unix)]
+        let system = super::super::platform::passwd_home().expect("the user database lists a home");
+        let scratch = Path::new(env!("CARGO_MANIFEST_DIR")).join("target/test-scratch/guard-env");
+        // Unset, redirected, and pointing where the system does.
+        for from_env in [None, Some(scratch.clone()), Some(system.clone())] {
+            let bases = guard_bases(from_env.clone().map(PathBuf::into_os_string));
+            assert!(bases.contains(&system), "{from_env:?}");
+            assert_eq!(bases.contains(&scratch), from_env.as_ref() == Some(&scratch), "{from_env:?}");
+            assert_eq!(bases.iter().filter(|b| **b == system).count(), 1, "{from_env:?}");
+        }
+        #[cfg(windows)]
+        assert_eq!(
+            ensure_writable(&system.join("DarkSoulsII/0110000100000999/DS2SOFS0000.sl2")).unwrap_err().code,
+            "devRealSave"
+        );
     }
 }

@@ -870,14 +870,16 @@ dependencies = [
 
 [[package]]
 name = "ds2-save-manager"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "aes",
  "cbc",
  "chrono",
  "ctr",
+ "dirs",
  "flate2",
  "gilrs",
+ "libc",
  "md-5",
  "serde",
  "serde_json",

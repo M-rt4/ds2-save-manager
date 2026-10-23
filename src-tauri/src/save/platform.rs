@@ -127,6 +127,24 @@ pub fn linux_guard_roots(home: &Path, steam_dirs: &[PathBuf]) -> Vec<PathBuf> {
     out
 }
 
+/// The home folder the user database lists for this user, which setting `HOME` doesn't change.
+#[cfg(unix)]
+pub fn passwd_home() -> Option<PathBuf> {
+    use std::ffi::{CStr, OsStr};
+    use std::os::unix::ffi::OsStrExt;
+    let mut buf: Vec<libc::c_char> = vec![0; 16 * 1024];
+    // SAFETY: getpwuid_r fills `pwd` with pointers into `buf`, which outlives every read of them.
+    unsafe {
+        let mut pwd: libc::passwd = std::mem::zeroed();
+        let mut found = std::ptr::null_mut();
+        if libc::getpwuid_r(libc::getuid(), &mut pwd, buf.as_mut_ptr(), buf.len(), &mut found) != 0 || found.is_null() || pwd.pw_dir.is_null() {
+            return None;
+        }
+        let dir = CStr::from_ptr(pwd.pw_dir).to_bytes();
+        (!dir.is_empty()).then(|| PathBuf::from(OsStr::from_bytes(dir)))
+    }
+}
+
 /// The values of every `"key" "value"` pair named `key` in a Valve KeyValues text
 /// (`libraryfolders.vdf`, `appmanifest_*.acf`), unescaped.
 pub fn vdf_values(text: &str, key: &str) -> Vec<String> {
