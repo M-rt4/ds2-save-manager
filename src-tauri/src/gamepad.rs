@@ -38,12 +38,25 @@ pub fn gamepads(pads: State<'_, Pads>) -> Vec<PadInfo> {
     pads.0.lock().unwrap().clone()
 }
 
+/// What tells whether the main window is the one in front (see `in_front`).
+struct Front {
+    /// tao's focus state, which Linux goes by.
+    focused: Arc<AtomicBool>,
+    /// The main window's handle, which Windows compares with the foreground window.
+    #[cfg(windows)]
+    hwnd: isize,
+}
+
 /// Starts reading pads on a thread of its own. Call once the main window exists.
 pub fn start(app: &AppHandle) {
-    let focused = Arc::new(AtomicBool::new(false));
-    if let Some(window) = app.get_webview_window("main") {
-        focused.store(window.is_focused().unwrap_or(false), Ordering::Relaxed);
-        let focused = focused.clone();
+    let window = app.get_webview_window("main");
+    let front = Front {
+        focused: Arc::new(AtomicBool::new(window.as_ref().and_then(|w| w.is_focused().ok()).unwrap_or(false))),
+        #[cfg(windows)]
+        hwnd: window.as_ref().and_then(|w| w.hwnd().ok()).map_or(0, |h| h.0 as isize),
+    };
+    if let Some(window) = window {
+        let focused = front.focused.clone();
         window.on_window_event(move |e| {
             if let WindowEvent::Focused(f) = e {
                 focused.store(*f, Ordering::Relaxed);
@@ -52,10 +65,10 @@ pub fn start(app: &AppHandle) {
     }
     let pads = app.state::<Pads>().0.clone();
     let app = app.clone();
-    let _ = std::thread::Builder::new().name("gamepad".into()).spawn(move || run(&app, &focused, &pads));
+    let _ = std::thread::Builder::new().name("gamepad".into()).spawn(move || run(&app, &front, &pads));
 }
 
-fn run(app: &AppHandle, focused: &AtomicBool, pads: &Mutex<Vec<PadInfo>>) {
+fn run(app: &AppHandle, front_of: &Front, pads: &Mutex<Vec<PadInfo>>) {
     let mut gilrs = match Gilrs::new() {
         Ok(g) => g,
         Err(gilrs::Error::NotImplemented(g)) => g,
@@ -74,7 +87,7 @@ fn run(app: &AppHandle, focused: &AtomicBool, pads: &Mutex<Vec<PadInfo>>) {
         let event = gilrs.next_event_blocking(Some(Duration::from_millis(250)));
         // Leaving the front lets go of whatever was held, or a held direction would keep
         // repeating in the UI with its release never sent.
-        let now_front = in_front(focused);
+        let now_front = in_front(front_of);
         if front && !now_front {
             let _ = app.emit("gamepad", PadEvent::Blur);
         }
@@ -104,29 +117,25 @@ fn run(app: &AppHandle, focused: &AtomicBool, pads: &Mutex<Vec<PadInfo>>) {
     }
 }
 
-/// Whether the user is in this app's window. On Windows tao's focus events can't say: as soon
-/// as the window activates, WebView2 takes the keyboard focus from it (wry's `MoveFocus`), and
-/// the window reports focus lost while it is still in front, which used to drop every press.
-/// There the process owning the foreground window decides.
+/// Whether the user is in the app's main window. On Windows tao's focus events can't say: as
+/// soon as the window activates, WebView2 takes the keyboard focus from it (wry's `MoveFocus`),
+/// and the window reports focus lost while it is still in front, which used to drop every press.
+/// There the foreground window must be the main window itself: not merely one of this process,
+/// since a system file dialog in front of it belongs to the process too, and Start pressed there
+/// would save behind it.
 #[cfg(windows)]
-fn in_front(_focused: &AtomicBool) -> bool {
-    use windows_sys::Win32::UI::WindowsAndMessaging::{GetForegroundWindow, GetWindowThreadProcessId};
-    let mut pid = 0;
-    // SAFETY: both calls only read window state; a null or stale handle yields pid 0.
-    unsafe {
-        let hwnd = GetForegroundWindow();
-        if hwnd.is_null() {
-            return false;
-        }
-        GetWindowThreadProcessId(hwnd, &mut pid);
-    }
-    pid == std::process::id()
+fn in_front(front: &Front) -> bool {
+    use windows_sys::Win32::UI::WindowsAndMessaging::GetForegroundWindow;
+    // SAFETY: only reads which window is in front.
+    let foreground = unsafe { GetForegroundWindow() } as isize;
+    front.hwnd != 0 && foreground == front.hwnd
 }
 
-/// GTK reports the toplevel's focus whichever widget inside it holds the keyboard.
+/// GTK reports the toplevel's focus whichever widget inside it holds the keyboard; a file dialog
+/// is a toplevel of its own, so it takes that focus away.
 #[cfg(not(windows))]
-fn in_front(focused: &AtomicBool) -> bool {
-    focused.load(Ordering::Relaxed)
+fn in_front(front: &Front) -> bool {
+    front.focused.load(Ordering::Relaxed)
 }
 
 fn button(b: Button) -> Option<&'static str> {
