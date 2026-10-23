@@ -366,7 +366,20 @@ const en = {
   'raw.compressedNote': 'Compressed data: [u32 compressed size][u32 plain size][zlib stream]. These bytes mean nothing one by one; changing any of them breaks the copy, and the game may refuse the save.',
 
   'err.targetUnreadable': 'The target file exists but can\'t be read as a Dark Souls II save, so it is not written over. Pick another target, or move that file away.',
-  'err.sourceChanged': 'The source save changed on disk after it was opened here (the game saved it?). Open it again from the list on the left so the latest progress is carried over.'
+  'err.sourceChanged': 'The source save changed on disk after it was opened here (the game saved it?). Open it again from the list on the left so the latest progress is carried over.',
+
+  'stats.none': 'The game data holds no stats for this item.',
+  'stats.attack': 'Attack',
+  'stats.reduction': 'Damage reduction',
+  'stats.requirements': 'Requirements and bonus',
+  'stats.bonus': 'Parameter bonus: how much each attribute adds to this weapon\'s attack',
+  'stats.equipment': 'Equipment',
+  'stats.defense': 'Defense',
+  'stats.resistance': 'Resistance',
+  'stats.spell': 'Spell',
+  'stats.uses': 'Uses by attunement',
+  'stats.infusion': 'An infusion changes these values; they are shown for the item without it.',
+  'stats.show': 'Show stats'
 } as const;
 
 export type Key = keyof typeof en;
@@ -734,7 +747,20 @@ const tr: Record<Key, string> = {
   'raw.compressedNote': 'Sıkıştırılmış veri: [u32 sıkıştırılmış boyut][u32 açık boyut][zlib akışı]. Baytların tek tek anlamı yoktur; herhangi birini değiştirmek kopyayı bozar ve oyun kaydı reddedebilir.',
 
   'err.targetUnreadable': 'Hedef dosya var ama Dark Souls II kaydı olarak okunamıyor; bu yüzden üzerine yazılmaz. Başka bir hedef seçin ya da o dosyayı başka yere taşıyın.',
-  'err.sourceChanged': 'Kaynak kayıt burada açıldıktan sonra diskte değişti (oyun kaydetmiş olabilir). En son ilerlemenin aktarılması için soldaki listeden kaydı yeniden açın.'
+  'err.sourceChanged': 'Kaynak kayıt burada açıldıktan sonra diskte değişti (oyun kaydetmiş olabilir). En son ilerlemenin aktarılması için soldaki listeden kaydı yeniden açın.',
+
+  'stats.none': 'Oyun verisinde bu eşyanın statları yok.',
+  'stats.attack': 'Saldırı',
+  'stats.reduction': 'Hasar azaltma',
+  'stats.requirements': 'Gereksinim ve bonus',
+  'stats.bonus': 'Parametre bonusu: her niteliğin bu silahın saldırısına ne kadar eklediği',
+  'stats.equipment': 'Ekipman',
+  'stats.defense': 'Savunma',
+  'stats.resistance': 'Direnç',
+  'stats.spell': 'Büyü',
+  'stats.uses': 'Attunement\'a göre kullanım',
+  'stats.infusion': 'Infusion bu değerleri değiştirir; burada eşyanın infusion\'sız hali gösteriliyor.',
+  'stats.show': 'Statları göster'
 };
 
 export type Lang = 'tr' | 'en';

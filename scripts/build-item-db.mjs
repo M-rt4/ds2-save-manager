@@ -28,6 +28,12 @@ const TABLES = {
 };
 
 const ARMOR_SLOTS = ['head', 'chest', 'hands', 'legs'];
+// Names the game's own menu texts spell differently (scripts/build-item-stats.py reports them).
+const NAME_FIXES = {
+  'Blue Flame Sword': 'Blue Flame',
+  'Drakekeeper Ultra Greatsword': 'Drakewing Ultra Greatsword',
+  'Seed Of A Tree Of Giants': 'Seed of a Tree of Giants'
+};
 const seen = new Map();
 
 for (const [stem, category] of Object.entries(TABLES)) {
@@ -36,7 +42,7 @@ for (const [stem, category] of Object.entries(TABLES)) {
     const id = Buffer.from(hex.replace(/\s+/g, ''), 'hex').readUInt32LE(0);
     if (seen.has(id)) continue;
     let cat = category;
-    const item = { id, name };
+    const item = { id, name: NAME_FIXES[name] ?? name };
     if ((stem === 'armors' || stem === 'weapons') && id >= 11_000_000 && id < 12_000_000) cat = 'shield';
     else if (stem === 'armors' && id < 20_000_000) cat = 'weapon';
     if (cat === 'armor') item.slot = ARMOR_SLOTS[id % 10] ?? 'chest';

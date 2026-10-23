@@ -4,6 +4,7 @@ import { useStore } from '../store';
 import { useT, type Key } from '../i18n';
 import { CATEGORY_ORDER, INFUSIONS } from '../game';
 import { CategoryIcon, Chevron, ItemIcon } from './icons';
+import { ItemDetail } from './ItemDetail';
 
 const ADDABLE = CATEGORY_ORDER.filter((c) => !['key', 'gesture', 'unknown'].includes(c));
 const REINFORCEABLE: Category[] = ['weapon', 'shield', 'armor'];
@@ -137,6 +138,7 @@ export function AddItemView({ onClose }: { onClose: () => void }) {
               <button className="btn ember" onClick={() => void add()}>
                 {t('inv.addConfirm')}
               </button>
+              <ItemDetail id={picked.id} plus={REINFORCEABLE.includes(picked.cat) ? plus : 0} infused={infusion > 0} />
               <p className="note">{t('inv.addWarning')}</p>
             </>
           ) : (

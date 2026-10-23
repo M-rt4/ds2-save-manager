@@ -20,6 +20,22 @@ This project builds on the work of others:
 - TKGP/SoulsFormats (https://github.com/JKAnderson/SoulsFormats): the two AES-128 save keys
   (SFUtil.GetDS2SaveKey and SFUtil.GetScholarSaveKey), which ship inside the games.
 
+- Atvaark/BinderTool (https://github.com/Atvaark/BinderTool), MIT License.
+  Used as the reference for reading the game's files (scripts/ds2data.py and
+  src-tauri/src/save/regulation.rs): the BHD5 archive layout and its RSA/AES encryption, the
+  path hash, the enc_regulation.bnd.dcx key, the FMG text format, and its DictionaryDS2.csv for
+  the paths of the menu texts.
+
+- soulsmods/Paramdex (https://github.com/soulsmods/Paramdex), the community's param
+  definitions (no license stated). Its DS2S/Defs layouts and field names are read by
+  scripts/build-item-stats.py to decode the regulation's params; the definitions are not copied
+  into this repository.
+
+- Item stats and texts (src/public/item_stats.json) are read from an installed copy of the game
+  by scripts/build-item-stats.py: values from its regulation, names and descriptions from its
+  menu texts. Item icons (src/public/icons) come from its archives (scripts/build-item-icons.py).
+  They belong to FromSoftware / Bandai Namco and are kept for this private project only.
+
 - The menu font (src/public/fonts/ds2-menu.woff2) is traced from the bitmap font atlas that Dark
   Souls II itself ships (font/*/FeFont_Big.fontbnd.dcx) by scripts/build-game-font.py. The glyph
   designs belong to their owners (FromSoftware / Bandai Namco); the file is kept for this private
