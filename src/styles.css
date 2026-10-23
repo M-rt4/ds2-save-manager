@@ -2169,7 +2169,9 @@ button.place:hover {
   white-space: nowrap;
 }
 /* A copy pointed at a scratch saves folder: says so loudly, since its saves never reach the game.
-   It is the one thing that shortens when the title bar runs out of room; the tooltip has it all. */
+   It and the dev label are the only things that shorten when the title bar runs out of room
+   (dev labels such as "worker1 · pad-region" are long); the tooltip has it all. */
+.titlebar .dev-badge,
 .titlebar .test-badge {
   flex-shrink: 1;
   min-width: 56px;

@@ -38,7 +38,7 @@ export function TitleBar() {
         {t('app.byline', { author: AUTHOR.name })}
       </span>
       {devLabel && (
-        <span className="dev-badge" data-tauri-drag-region title="Development copy">
+        <span className="dev-badge" data-tauri-drag-region title={`Development copy: ${devLabel}`}>
           DEV · {devLabel}
         </span>
       )}
