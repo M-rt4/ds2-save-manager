@@ -144,6 +144,7 @@ const en = {
   'toast.reverted': 'Changes discarded.',
 
   'err.gameRunning': 'Dark Souls II is running. Quit to the desktop, then try again.',
+  'err.gameCheck': 'Could not check whether Dark Souls II is running, so nothing was written. Try again.',
   'err.changedOnDisk': 'The game wrote this save after it was opened. Discard changes to load the new file.',
   'err.notSave': 'This is not a save file.',
   'err.notDs2': 'This is not a Dark Souls II save.',
@@ -620,6 +621,7 @@ const tr: Record<Key, string> = {
   'toast.reverted': 'Değişikliklerden vazgeçildi.',
 
   'err.gameRunning': 'Dark Souls II açık. Masaüstüne çıkıp yeniden deneyin.',
+  'err.gameCheck': 'Dark Souls II\'nin açık olup olmadığı denetlenemedi; hiçbir şey yazılmadı. Yeniden deneyin.',
   'err.changedOnDisk': 'Oyun bu kaydı, dosya açıldıktan sonra yazdı. Yeni dosyayı yüklemek için değişikliklerden vazgeçin.',
   'err.notSave': 'Bu bir kayıt dosyası değil.',
   'err.notDs2': 'Bu bir Dark Souls II kaydı değil.',

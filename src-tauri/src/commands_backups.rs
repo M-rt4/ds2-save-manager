@@ -4,10 +4,10 @@
 use std::path::PathBuf;
 
 use ds2save::save::backups::{self, Backup, Reason, Restored};
-use ds2save::save::{disk, SaveError};
+use ds2save::save::SaveError;
 use tauri::State;
 
-use crate::commands::AppState;
+use crate::commands::{ensure_game_closed, AppState};
 
 type CmdResult<T> = Result<T, SaveError>;
 
@@ -26,9 +26,7 @@ pub async fn create_backup(save_path: String) -> CmdResult<Backup> {
 /// app is read again afterwards, so its unsaved edits are dropped.
 #[tauri::command]
 pub async fn restore_backup(state: State<'_, AppState>, backup_path: String, target_path: String) -> CmdResult<Restored> {
-    if disk::game_running() {
-        return Err(SaveError::new("gameRunning", "Dark Souls II is running. Quit to the desktop first."));
-    }
+    ensure_game_closed()?;
     let target = PathBuf::from(target_path);
     let restored = backups::restore(&PathBuf::from(backup_path), &target)?;
     state.reload_if_open(&target)?;

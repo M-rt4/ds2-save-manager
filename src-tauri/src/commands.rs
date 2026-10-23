@@ -185,7 +185,7 @@ pub async fn saves_root() -> Option<String> {
 }
 
 #[tauri::command]
-pub async fn game_running() -> bool {
+pub async fn game_running() -> CmdResult<bool> {
     disk::game_running()
 }
 
@@ -253,8 +253,9 @@ pub struct WriteReport {
     edition: Edition,
 }
 
+/// Refuses while the game runs, and when it can't be told whether it does.
 pub(crate) fn ensure_game_closed() -> CmdResult<()> {
-    if disk::game_running() {
+    if disk::game_running()? {
         return Err(SaveError::new("gameRunning", "Dark Souls II is running. Quit to the desktop first."));
     }
     Ok(())
@@ -263,10 +264,7 @@ pub(crate) fn ensure_game_closed() -> CmdResult<()> {
 /// Backs up whatever is at `path`, writes `save` there, and reads it back to prove it.
 pub(crate) fn write_checked(path: &Path, save: &SaveFile, reason: Reason) -> CmdResult<(Option<PathBuf>, [u8; 16])> {
     let bytes = save.encode();
-    let reread = SaveFile::parse(bytes.clone())?;
-    if reread.source_edition != save.edition || reread.checksum_failures().len() > save.checksum_failures().len() {
-        return Err(SaveError::new("verify", "The encoded save did not read back correctly; nothing was written."));
-    }
+    save.verify_encoded(&bytes)?;
     let backup = disk::backup(path, reason)?;
     disk::write_atomic(path, &bytes)?;
     Ok((backup, disk::fingerprint(&bytes)))
