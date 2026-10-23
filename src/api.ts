@@ -376,3 +376,24 @@ export interface SystemInfo {
 export const aboutApi = {
   systemInfo: () => invoke<SystemInfo>('system_info')
 };
+
+export interface RawMatch {
+  index: number;
+  offset: number;
+}
+
+export interface RawMatches {
+  matches: RawMatch[];
+  /** Whether the search stopped at its limit. */
+  more: boolean;
+}
+
+export const rawApi = {
+  read: (id: string, index: number, offset: number, length: number) =>
+    invoke<ArrayBuffer>('raw_read', { id, index, offset, length }).then((b) => new Uint8Array(b)),
+  /** Resolves to whether any byte changed. */
+  write: (id: string, index: number, offset: number, bytes: number[]) =>
+    invoke<boolean>('raw_write', { id, index, offset, bytes }),
+  /** `index` null searches every block. */
+  find: (id: string, index: number | null, pattern: number[]) => invoke<RawMatches>('raw_find', { id, index, pattern })
+};
