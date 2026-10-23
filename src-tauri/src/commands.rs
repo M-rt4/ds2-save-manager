@@ -308,4 +308,13 @@ impl AppState {
             Ok(changed)
         })
     }
+
+    /// Whether an open save's file now differs from what was read (the game saved it since).
+    /// A file that can't be read any more counts as unchanged; the copy in memory is all there is.
+    pub(crate) fn changed_on_disk(&self, id: &str) -> bool {
+        let Some((path, fingerprint)) = self.docs.lock().unwrap().get(id).map(|d| (d.path.clone(), d.fingerprint)) else {
+            return false;
+        };
+        std::fs::read(path).is_ok_and(|bytes| disk::fingerprint(&bytes) != fingerprint)
+    }
 }

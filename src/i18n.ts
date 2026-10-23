@@ -361,7 +361,10 @@ const en = {
   'raw.memoryNote': 'Changes are kept in memory; "Save changes" writes them to disk.',
   'err.rawOutOfRange': 'That write would run past the end of the block.',
   'raw.warnRegulation': 'Block 21 is a zlib-compressed copy of the game\'s regulation. The game compares its version with its own and refuses the whole save when they differ ("The game version and save data version are different"). Changing that block is especially risky.',
-  'raw.compressedNote': 'Compressed data: [u32 compressed size][u32 plain size][zlib stream]. These bytes mean nothing one by one; changing any of them breaks the copy, and the game may refuse the save.'
+  'raw.compressedNote': 'Compressed data: [u32 compressed size][u32 plain size][zlib stream]. These bytes mean nothing one by one; changing any of them breaks the copy, and the game may refuse the save.',
+
+  'err.targetUnreadable': 'The target file exists but can\'t be read as a Dark Souls II save, so it is not written over. Pick another target, or move that file away.',
+  'err.sourceChanged': 'The source save changed on disk after it was opened here (the game saved it?). Open it again from the list on the left so the latest progress is carried over.'
 } as const;
 
 export type Key = keyof typeof en;
@@ -724,7 +727,10 @@ const tr: Record<Key, string> = {
   'raw.memoryNote': 'Değişiklikler bellekte tutulur; diske "Değişiklikleri kaydet" ile yazılır.',
   'err.rawOutOfRange': 'Bu yazma bloğun sonunu aşıyor.',
   'raw.warnRegulation': '21. blok, oyunun regulation verisinin zlib ile sıkıştırılmış kopyasıdır. Oyun bu kopyanın sürümünü kendi sürümüyle karşılaştırır; uyuşmazsa kaydın tamamını reddeder ("The game version and save data version are different"). Bu bloğu değiştirmek özellikle risklidir.',
-  'raw.compressedNote': 'Sıkıştırılmış veri: [u32 sıkıştırılmış boyut][u32 açık boyut][zlib akışı]. Baytların tek tek anlamı yoktur; herhangi birini değiştirmek kopyayı bozar ve oyun kaydı reddedebilir.'
+  'raw.compressedNote': 'Sıkıştırılmış veri: [u32 sıkıştırılmış boyut][u32 açık boyut][zlib akışı]. Baytların tek tek anlamı yoktur; herhangi birini değiştirmek kopyayı bozar ve oyun kaydı reddedebilir.',
+
+  'err.targetUnreadable': 'Hedef dosya var ama Dark Souls II kaydı olarak okunamıyor; bu yüzden üzerine yazılmaz. Başka bir hedef seçin ya da o dosyayı başka yere taşıyın.',
+  'err.sourceChanged': 'Kaynak kayıt burada açıldıktan sonra diskte değişti (oyun kaydetmiş olabilir). En son ilerlemenin aktarılması için soldaki listeden kaydı yeniden açın.'
 };
 
 export type Lang = 'tr' | 'en';
