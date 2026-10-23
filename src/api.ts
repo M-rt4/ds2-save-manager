@@ -228,3 +228,39 @@ export const api = {
 export function isSaveError(e: unknown): e is SaveError {
   return typeof e === 'object' && e !== null && 'code' in e && 'message' in e;
 }
+
+export type BackupReason = 'manual' | 'save' | 'transfer' | 'restore';
+
+export interface BackupCharacter {
+  slot: number;
+  name: string;
+  level: number;
+}
+
+export interface Backup {
+  path: string;
+  fileName: string;
+  /** When it was taken, in ms since the epoch. */
+  created: number;
+  /** null on backups from before reasons were recorded. */
+  reason: BackupReason | null;
+  size: number;
+  readable: boolean;
+  edition: Edition | null;
+  characters: BackupCharacter[];
+}
+
+export interface RestoreReport {
+  path: string;
+  /** Where the file that was there before went. */
+  backup: string | null;
+  edition: Edition;
+}
+
+export const backupApi = {
+  list: (savePath: string) => invoke<Backup[]>('list_backups', { savePath }),
+  create: (savePath: string) => invoke<Backup>('create_backup', { savePath }),
+  restore: (backupPath: string, targetPath: string) =>
+    invoke<RestoreReport>('restore_backup', { backupPath, targetPath }),
+  remove: (path: string) => invoke<void>('delete_backup', { path })
+};

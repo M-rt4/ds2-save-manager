@@ -1,6 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod commands;
+mod commands_backups;
 
 use tauri::{WebviewUrl, WebviewWindowBuilder};
 
@@ -44,6 +45,10 @@ fn main() {
             commands::compare_saves,
             commands::transfer_character,
             commands::default_target,
+            commands_backups::list_backups,
+            commands_backups::create_backup,
+            commands_backups::restore_backup,
+            commands_backups::delete_backup,
         ])
         .run(tauri::generate_context!())
         .expect("error while running DS2 Save Manager");

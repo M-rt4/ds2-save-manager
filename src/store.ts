@@ -11,7 +11,7 @@ import {
 } from './api';
 import { errorText, initialLang, translate, type Key, type Lang } from './i18n';
 
-export type Tab = 'status' | 'inventory' | 'transfer' | 'file';
+export type Tab = 'status' | 'inventory' | 'transfer' | 'file' | 'backups';
 
 /** Status values being edited; shown in blue until saved, like the Level Up screen. */
 export interface Draft {

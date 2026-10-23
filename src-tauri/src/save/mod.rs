@@ -2,6 +2,7 @@
 //! character data inside them. The original release and Scholar of the First Sin share
 //! one layout; only the encryption key differs.
 
+pub mod backups;
 mod bnd4;
 pub mod bytes;
 pub mod character;

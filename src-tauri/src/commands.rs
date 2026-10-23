@@ -6,6 +6,7 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
+use ds2save::save::backups::Reason;
 use ds2save::save::character::{self, Character, CharacterEdit, SlotSummary};
 use ds2save::save::disk::{self, FoundSave};
 use ds2save::save::file::{SaveFile, HEADER_ENTRY, SLOT_COUNT};
@@ -224,13 +225,13 @@ fn ensure_game_closed() -> CmdResult<()> {
 }
 
 /// Backs up whatever is at `path`, writes `save` there, and reads it back to prove it.
-fn write_checked(path: &Path, save: &SaveFile) -> CmdResult<(Option<PathBuf>, [u8; 16])> {
+fn write_checked(path: &Path, save: &SaveFile, reason: Reason) -> CmdResult<(Option<PathBuf>, [u8; 16])> {
     let bytes = save.encode();
     let reread = SaveFile::parse(bytes.clone())?;
     if reread.source_edition != save.edition || reread.checksum_failures().len() > save.checksum_failures().len() {
         return Err(SaveError::new("verify", "The encoded save did not read back correctly; nothing was written."));
     }
-    let backup = disk::backup(path)?;
+    let backup = disk::backup(path, reason)?;
     disk::write_atomic(path, &bytes)?;
     Ok((backup, disk::fingerprint(&bytes)))
 }
@@ -248,7 +249,7 @@ pub async fn write_save(state: State<'_, AppState>, id: String) -> CmdResult<Wri
                 ));
             }
         }
-        let (backup, fingerprint) = write_checked(&doc.path, &doc.save)?;
+        let (backup, fingerprint) = write_checked(&doc.path, &doc.save, Reason::Save)?;
         doc.fingerprint = fingerprint;
         doc.dirty = false;
         Ok(WriteReport {
@@ -367,7 +368,7 @@ pub async fn run_conversion(state: State<'_, AppState>, req: ConversionRequest) 
             out
         }
     };
-    let (backup, fingerprint) = write_checked(&path, &out)?;
+    let (backup, fingerprint) = write_checked(&path, &out, Reason::Transfer)?;
 
     // A target that is open in the app now shows what was written.
     let id = doc_id(&path);
@@ -416,4 +417,17 @@ pub async fn transfer_character(
 pub async fn default_target(path: String, edition: Edition) -> String {
     let p = PathBuf::from(path);
     p.with_file_name(edition.file_name()).to_string_lossy().into_owned()
+}
+
+impl AppState {
+    /// Reads `path` again into the open save it belongs to, if one is open, dropping its
+    /// unsaved edits. Used after something else rewrote the file (restoring a backup).
+    pub fn reload_if_open(&self, path: &Path) -> CmdResult<()> {
+        let mut docs = self.docs.lock().unwrap();
+        if let Some(doc) = docs.get_mut(&doc_id(path)) {
+            let (save, fingerprint) = read_save(path)?;
+            *doc = Doc { path: doc.path.clone(), save, fingerprint, dirty: false };
+        }
+        Ok(())
+    }
 }
