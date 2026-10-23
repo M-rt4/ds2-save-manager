@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { getVersion } from '@tauri-apps/api/app';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { aboutApi } from '../api';
 import { useStore } from '../store';
@@ -7,6 +8,9 @@ import { Bonfire } from './icons';
 
 const win = () => getCurrentWindow();
 
+/** Shown in the title bar at all times, and in the About view. */
+export const AUTHOR = 'Mert';
+
 export function TitleBar() {
   const t = useT();
   const lang = useStore((s) => s.lang);
@@ -14,8 +18,10 @@ export function TitleBar() {
   const openSettings = useStore((s) => s.setSettingsOpen);
   const [devLabel, setDevLabel] = useState<string | null>(null);
   const [testRoot, setTestRoot] = useState<string | null>(null);
+  const [version, setVersion] = useState<string | null>(null);
 
   useEffect(() => {
+    void getVersion().then(setVersion).catch(() => setVersion(null));
     void aboutApi.devLabel().then(setDevLabel).catch(() => setDevLabel(null));
     void aboutApi.testSavesRoot().then(setTestRoot).catch(() => setTestRoot(null));
   }, []);
@@ -28,6 +34,10 @@ export function TitleBar() {
       </span>
       <span className="subtitle" data-tauri-drag-region>
         {t('app.subtitle')}
+      </span>
+      <span className="byline" data-tauri-drag-region>
+        {version && <>v{version} · </>}
+        {t('app.byline', { author: AUTHOR })}
       </span>
       {devLabel && (
         <span className="dev-badge" data-tauri-drag-region title="Development copy">

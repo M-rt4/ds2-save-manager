@@ -5,6 +5,7 @@ import { useStore } from './store';
 
 const en = {
   'app.subtitle': 'Save Manager',
+  'app.byline': 'by {author}',
   'app.testFolder': 'Test folder: your real saves are not touched',
   'app.testFolderHint': 'This copy lists, opens and writes saves only in {path}. Saving here does not change the files the game loads.',
   'app.devData': 'Simulated data only',
@@ -477,6 +478,7 @@ export type Key = keyof typeof en;
 
 const tr: Record<Key, string> = {
   'app.subtitle': 'Kayıt Yöneticisi',
+  'app.byline': 'Yazar: {author}',
   'app.testFolder': 'Test klasörü: gerçek kayıtlarına dokunulmaz',
   'app.testFolderHint': 'Bu kopya yalnızca {path} içindeki kayıtları listeler, açar ve yazar. Burada kaydetmek oyunun yüklediği dosyaları değiştirmez.',
   'app.devData': 'Yalnızca simüle veri',
