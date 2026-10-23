@@ -120,6 +120,23 @@ impl SaveFile {
         block.len = data.len();
     }
 
+    /// Checks that `bytes`, this save as `encode` wrote it, reads back as this save: the same
+    /// release, the same number of entries, and every entry's data byte for byte in its place.
+    /// Entries whose checksum already failed when the file was read may still fail; no other
+    /// may.
+    pub fn verify_encoded(&self, bytes: &[u8]) -> Result<()> {
+        let failed = || SaveError::new("verify", "The encoded save did not read back correctly; nothing was written.");
+        let reread = SaveFile::parse(bytes.to_vec()).map_err(|_| failed())?;
+        if reread.source_edition != self.edition
+            || reread.block_count() != self.block_count()
+            || (0..self.block_count()).any(|i| reread.block(i) != self.block(i))
+            || reread.checksum_failures().len() > self.checksum_failures().len()
+        {
+            return Err(failed());
+        }
+        Ok(())
+    }
+
     pub fn entries(&self) -> &[Entry] {
         &self.entries
     }

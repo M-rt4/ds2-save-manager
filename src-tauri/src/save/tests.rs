@@ -40,6 +40,42 @@ fn unchanged_save_encodes_to_identical_bytes() {
 }
 
 #[test]
+fn read_back_check_catches_entries_out_of_place() {
+    let names = [(0, "Nele", 37), (1, "Pate", 12)];
+    let s = save(Edition::Scholar, &names);
+    let bytes = s.encode();
+    s.verify_encoded(&bytes).unwrap();
+    // Laid out again because an entry changed size, it still reads back as itself.
+    let mut grown = s.clone();
+    grown.set_block_data(SUMMARY_ENTRY, &[5; 300]);
+    let relaid = grown.encode();
+    assert_ne!(relaid.len(), bytes.len());
+    grown.verify_encoded(&relaid).unwrap();
+
+    // What a re-layout bug in `encode` could write: two entries of one size trade places.
+    // Each still decrypts and passes its checksum, so the release and checksums alone pass it.
+    let entries = super::bnd4::parse(&bytes).unwrap();
+    let (a, b) = (character_entry(0), character_entry(1));
+    assert_eq!(entries[a].size, entries[b].size);
+    let entry_len = super::bytes::u64_at(&bytes, 0x20) as usize;
+    let offset_at = |i: usize| super::bnd4::HEADER_LEN + i * entry_len + 16;
+    let mut swapped = bytes.clone();
+    let (oa, ob) = (bytes[offset_at(a)..offset_at(a) + 4].to_vec(), bytes[offset_at(b)..offset_at(b) + 4].to_vec());
+    swapped[offset_at(a)..offset_at(a) + 4].copy_from_slice(&ob);
+    swapped[offset_at(b)..offset_at(b) + 4].copy_from_slice(&oa);
+    let reread = SaveFile::parse(swapped.clone()).unwrap();
+    assert_eq!(reread.source_edition, s.edition);
+    assert!(reread.checksum_failures().is_empty());
+    assert_eq!(s.verify_encoded(&swapped).unwrap_err().code, "verify");
+
+    // The same entries with one more after them.
+    let mut blocks = testdata::save_blocks(&names, 4096);
+    blocks.push(vec![7; 64]);
+    let longer = SaveFile::from_blocks(Edition::Scholar, &blocks);
+    assert_eq!(s.verify_encoded(&longer.encode()).unwrap_err().code, "verify");
+}
+
+#[test]
 fn conversion_reencrypts_every_entry_with_the_other_key() {
     let original = save(Edition::Original, &[(0, "Nele", 37)]);
     let converted = transfer::convert(&original, Edition::Scholar);

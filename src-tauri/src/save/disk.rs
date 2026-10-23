@@ -199,35 +199,72 @@ pub fn write_atomic(path: &Path, bytes: &[u8]) -> Result<()> {
     Ok(())
 }
 
-/// Whether a Dark Souls II process (either release, both ship `DarkSoulsII.exe`) runs.
-pub fn game_running() -> bool {
+/// Whether a Dark Souls II process (either release, both ship `DarkSoulsII.exe`) runs. When
+/// the processes can't be listed that is an error, not a no, so nothing is written then.
+pub fn game_running() -> Result<bool> {
     // Debug test copies whose saves root is a scratch tree may write while the user plays.
     if cfg!(debug_assertions) && std::env::var_os("DS2SM_SAVES_ROOT").is_some() && std::env::var_os("DS2SM_IGNORE_GAME").is_some() {
-        return false;
+        return Ok(false);
     }
     #[cfg(windows)]
     {
-        use std::os::windows::process::CommandExt;
-        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
-        std::process::Command::new("tasklist")
-            .args(["/FI", "IMAGENAME eq DarkSoulsII.exe", "/FO", "CSV", "/NH"])
-            .creation_flags(CREATE_NO_WINDOW)
-            .output()
-            .map(|o| String::from_utf8_lossy(&o.stdout).to_ascii_lowercase().contains("darksoulsii.exe"))
-            .unwrap_or(false)
+        process_running("DarkSoulsII.exe").ok_or_else(game_check_failed)
     }
     #[cfg(target_os = "linux")]
     {
-        fs::read_dir("/proc")
-            .into_iter()
-            .flatten()
-            .flatten()
-            .filter(|e| e.file_name().to_string_lossy().bytes().all(|b| b.is_ascii_digit()))
-            .any(|e| fs::read(e.path().join("cmdline")).is_ok_and(|c| super::platform::cmdline_is_game(&c)))
+        for entry in fs::read_dir("/proc").map_err(|_| game_check_failed())? {
+            let entry = entry.map_err(|_| game_check_failed())?;
+            // A process that ends while the list is read has no cmdline left, and no save open.
+            if entry.file_name().to_string_lossy().bytes().all(|b| b.is_ascii_digit())
+                && fs::read(entry.path().join("cmdline")).is_ok_and(|c| super::platform::cmdline_is_game(&c))
+            {
+                return Ok(true);
+            }
+        }
+        Ok(false)
     }
     #[cfg(not(any(windows, target_os = "linux")))]
     {
-        false
+        Ok(false)
+    }
+}
+
+#[cfg(any(windows, target_os = "linux"))]
+fn game_check_failed() -> SaveError {
+    SaveError::new("gameCheck", "Could not check whether Dark Souls II is running, so nothing was written.")
+}
+
+/// Whether a process whose executable is named `exe` runs, from Windows' process list; None
+/// when the list can't be read to its end.
+#[cfg(windows)]
+fn process_running(exe: &str) -> Option<bool> {
+    use windows_sys::Win32::Foundation::{CloseHandle, GetLastError, ERROR_NO_MORE_FILES, INVALID_HANDLE_VALUE};
+    use windows_sys::Win32::System::Diagnostics::ToolHelp::{
+        CreateToolhelp32Snapshot, Process32FirstW, Process32NextW, PROCESSENTRY32W, TH32CS_SNAPPROCESS,
+    };
+    // SAFETY: the snapshot handle is checked before use and closed once; each entry is read
+    // only after Process32FirstW/NextW filled it, with dwSize set as they require.
+    unsafe {
+        let snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+        if snapshot == INVALID_HANDLE_VALUE {
+            return None;
+        }
+        let mut entry: PROCESSENTRY32W = std::mem::zeroed();
+        entry.dwSize = std::mem::size_of::<PROCESSENTRY32W>() as u32;
+        let mut found = false;
+        let mut more = Process32FirstW(snapshot, &mut entry) != 0;
+        while more {
+            let len = entry.szExeFile.iter().position(|&c| c == 0).unwrap_or(entry.szExeFile.len());
+            if String::from_utf16_lossy(&entry.szExeFile[..len]).eq_ignore_ascii_case(exe) {
+                found = true;
+                break;
+            }
+            more = Process32NextW(snapshot, &mut entry) != 0;
+        }
+        // Without a match the walk must have stopped at the list's end, not on an error.
+        let complete = found || GetLastError() == ERROR_NO_MORE_FILES;
+        CloseHandle(snapshot);
+        complete.then_some(found)
     }
 }
 
@@ -257,5 +294,26 @@ mod guard_tests {
             assert!(inside_any(&shouted, &roots));
         }
         fs::remove_dir_all(&base).unwrap();
+    }
+}
+
+#[cfg(test)]
+mod game_check_tests {
+    use super::*;
+
+    #[test]
+    fn reads_the_process_list() {
+        // Whatever the answer (the game may well be running), the list could be read.
+        assert!(game_running().is_ok());
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn finds_processes_by_executable_name() {
+        let me = std::env::current_exe().unwrap();
+        let name = me.file_name().unwrap().to_string_lossy();
+        assert_eq!(process_running(&name), Some(true));
+        assert_eq!(process_running(&name.to_uppercase()), Some(true));
+        assert_eq!(process_running("ds2sm-no-such-process.exe"), Some(false));
     }
 }

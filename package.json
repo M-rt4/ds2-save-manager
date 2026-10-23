@@ -1,6 +1,6 @@
 {
   "name": "ds2-save-manager",
-  "version": "0.6.0",
+  "version": "0.6.2",
   "description": "Dark Souls II save manager: edit, convert and transfer saves between the original game and Scholar of the First Sin.",
   "author": "Mert",
   "private": true,
