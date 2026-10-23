@@ -103,6 +103,9 @@ export interface Item {
   reinforcement: number;
   infusion: string | null;
   charges: [number, number] | null;
+  icon: number | null;
+  /** Set when the count can be edited: the most the player can hold. */
+  maxQuantity: number | null;
 }
 
 export interface Inventory {
@@ -146,6 +149,8 @@ export interface ItemDef {
   name: string;
   cat: Category;
   slot?: string;
+  icon?: number;
+  maxHeld: number;
 }
 
 export type InventoryOp =
@@ -182,14 +187,58 @@ export interface Compatibility {
   systemSizeDifferences: number[];
 }
 
-export type ConversionMode = 'replace' | 'merge';
+export interface RegulationInfo {
+  /** Regulation version text, e.g. 02000100. */
+  version: string;
+  /** Game version stamp (exe file version a*100+b*10+c). */
+  stamp: number;
+  gameVersion: string;
+  params: number;
+}
 
 export interface ConversionRequest {
   sourceId: string;
+  /** null moves the whole save; [from, to] moves one character into slot `to`. */
+  slot: [number, number] | null;
   targetEdition: Edition;
   targetPath: string;
-  mode: ConversionMode;
+  /** A SteamID64 typed by the user; otherwise the target folder's account. */
+  account: string | null;
+  /** The target game's install folder. */
+  gameDir: string | null;
 }
+
+export interface FormatSource {
+  kind: 'install' | 'targetFile' | 'otherSave';
+  path: string;
+  regulation: RegulationInfo;
+}
+
+export interface LocalAccount {
+  id: string;
+  folder: string;
+  files: string[];
+}
+
+export interface AccountPlan {
+  source: string | null;
+  targetFile: string | null;
+  targetFolder: string | null;
+  result: string | null;
+  origin: 'manual' | 'folder' | 'targetFile' | 'source';
+  local: LocalAccount[];
+}
+
+export type Change =
+  | { kind: 'key'; from: Edition; to: Edition }
+  | { kind: 'regulation'; from: RegulationInfo | null; to: RegulationInfo; source: FormatSource }
+  | { kind: 'titleVersion'; from: number; to: number }
+  | { kind: 'entrySize'; entry: number; from: number; to: number }
+  | { kind: 'account'; from: string | null; to: string; origin: AccountPlan['origin'] }
+  | { kind: 'slot'; slot: number; before: string | null; after: string | null }
+  | { kind: 'keptTargetSystem'; path: string }
+  | { kind: 'newFile'; path: string }
+  | { kind: 'backup'; path: string };
 
 export interface ConversionPlan {
   targetPath: string;
@@ -198,8 +247,19 @@ export interface ConversionPlan {
   targetSlots: SlotView[] | null;
   targetError: SaveError | null;
   compatibility: Compatibility | null;
-  accountChange: [string, string] | null;
+  sourceRegulation: RegulationInfo | null;
+  format: FormatSource | null;
+  accounts: AccountPlan;
+  changes: Change[];
+  blocked: SaveError | null;
   targetOpenAndDirty: boolean;
+}
+
+export interface ConversionReport {
+  path: string;
+  backup: string | null;
+  edition: Edition;
+  changes: Change[];
 }
 
 export const api = {
@@ -217,11 +277,7 @@ export const api = {
   writeSave: (id: string) => invoke<WriteReport>('write_save', { id }),
   setAccount: (id: string, account: string) => invoke<SaveView>('set_account', { id, account }),
   planConversion: (req: ConversionRequest) => invoke<ConversionPlan>('plan_conversion', { req }),
-  runConversion: (req: ConversionRequest) => invoke<WriteReport>('run_conversion', { req }),
-  compareSaves: (sourceId: string, targetId: string) =>
-    invoke<Compatibility>('compare_saves', { sourceId, targetId }),
-  transferCharacter: (sourceId: string, fromSlot: number, targetId: string, toSlot: number) =>
-    invoke<SaveView>('transfer_character', { sourceId, fromSlot, targetId, toSlot }),
+  runConversion: (req: ConversionRequest) => invoke<ConversionReport>('run_conversion', { req }),
   defaultTarget: (path: string, edition: Edition) => invoke<string>('default_target', { path, edition })
 };
 

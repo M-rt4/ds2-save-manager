@@ -38,6 +38,10 @@ pub struct Item {
     pub infusion: Option<String>,
     /// Estus Flask charges: (current, max).
     pub charges: Option<(u8, u8)>,
+    /// The game's icon id, served as `/icons/<icon>.webp`.
+    pub icon: Option<u32>,
+    /// Set when the count can be edited: the most the player can hold.
+    pub max_quantity: Option<u16>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -89,6 +93,10 @@ pub fn read(block: &[u8]) -> Inventory {
                 infusion: (matches!(category, Category::Weapon | Category::Shield) && infusion != 0)
                     .then(|| INFUSIONS.get(infusion as usize).map_or(format!("#{infusion}"), |s| s.to_string())),
                 charges,
+                icon: def.and_then(|d| d.icon),
+                max_quantity: def
+                    .filter(|d| region == Region::Main && stack && d.max_quantity() > 1)
+                    .map(|d| d.max_quantity()),
             });
         }
     }
@@ -111,21 +119,23 @@ pub enum InventoryOp {
 pub fn apply(block: &mut [u8], op: &InventoryOp) -> Result<()> {
     match *op {
         InventoryOp::SetQuantity { offset, quantity } => {
-            let cat = existing(block, offset)?;
-            if !cat.stackable() || matches!(cat, Category::Key | Category::Spell) {
+            let (cat, region, max) = existing(block, offset)?;
+            if !cat.stackable() || region == Region::Keys || max <= 1 {
                 return Err(SaveError::invalid("This item has no count."));
             }
-            put_u16(block, offset + 8, quantity.clamp(1, cat.max_stack()));
+            put_u16(block, offset + 8, quantity.clamp(1, max));
         }
         InventoryOp::SetReinforcement { offset, level } => {
-            let cat = existing(block, offset)?;
+            let (cat, _, _) = existing(block, offset)?;
             if !cat.reinforceable() {
                 return Err(SaveError::invalid("This item can't be reinforced."));
             }
             block[offset + 12] = level.min(10);
         }
         InventoryOp::Remove { offset } => {
-            existing(block, offset)?;
+            if existing(block, offset)?.1 == Region::Keys {
+                return Err(SaveError::invalid("Key items and gestures can't be removed."));
+            }
             block[offset..offset + RECORD_LEN].fill(0);
         }
         InventoryOp::Add { id, quantity, reinforcement, infusion } => add(block, id, quantity, reinforcement, infusion)?,
@@ -133,16 +143,25 @@ pub fn apply(block: &mut [u8], op: &InventoryOp) -> Result<()> {
     Ok(())
 }
 
-fn existing(block: &[u8], offset: usize) -> Result<Category> {
+/// The category, region and count limit of the record at `offset`.
+fn existing(block: &[u8], offset: usize) -> Result<(Category, Region, u16)> {
     let in_region = |r: &Range<usize>| r.contains(&offset) && (offset - r.start) % RECORD_LEN == 0;
-    if !(in_region(&MAIN) || in_region(&KEYS)) || offset + RECORD_LEN > block.len() {
+    let region = if in_region(&MAIN) {
+        Region::Main
+    } else if in_region(&KEYS) {
+        Region::Keys
+    } else {
+        return Err(SaveError::invalid("No inventory record at that position."));
+    };
+    if offset + RECORD_LEN > block.len() {
         return Err(SaveError::invalid("No inventory record at that position."));
     }
     let id = u32_at(block, offset);
     if id == 0 {
         return Err(SaveError::invalid("That inventory record is empty."));
     }
-    Ok(catalog().get(id).map_or(Category::Unknown, |d| d.cat))
+    let def = catalog().get(id);
+    Ok((def.map_or(Category::Unknown, |d| d.cat), region, def.map_or(0, |d| d.max_quantity())))
 }
 
 fn add(block: &mut [u8], id: u32, quantity: u16, reinforcement: u8, infusion: u8) -> Result<()> {
@@ -155,7 +174,7 @@ fn add(block: &mut [u8], id: u32, quantity: u16, reinforcement: u8, infusion: u8
 
     if cat.stackable() {
         if let Some(o) = records().find(|&o| u32_at(block, o) == id) {
-            let q = u16_at(block, o + 8).saturating_add(quantity).clamp(1, cat.max_stack());
+            let q = u16_at(block, o + 8).saturating_add(quantity).clamp(1, def.max_quantity());
             put_u16(block, o + 8, q);
             return Ok(());
         }
@@ -180,7 +199,7 @@ fn add(block: &mut [u8], id: u32, quantity: u16, reinforcement: u8, infusion: u8
     rec.fill(0);
     rec[0..4].copy_from_slice(&id.to_le_bytes());
     if cat.stackable() {
-        put_u16(rec, 8, quantity.clamp(1, cat.max_stack()));
+        put_u16(rec, 8, quantity.clamp(1, def.max_quantity()));
     } else {
         put_f32(rec, 8, durability);
     }

@@ -9,6 +9,7 @@ export function TitleBar() {
   const t = useT();
   const lang = useStore((s) => s.lang);
   const setLang = useStore((s) => s.setLang);
+  const openSettings = useStore((s) => s.setSettingsOpen);
 
   return (
     <header className="titlebar" data-tauri-drag-region>
@@ -20,6 +21,9 @@ export function TitleBar() {
         {t('app.subtitle')}
       </span>
       <div className="spacer" data-tauri-drag-region />
+      <button className="lang" onClick={() => openSettings(true)}>
+        {t('settings.open')}
+      </button>
       <button className="lang" onClick={() => setLang(lang === 'tr' ? 'en' : 'tr')}>
         {t('lang.switch')}
       </button>

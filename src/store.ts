@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import {
   api,
   type Attributes,
+  type Change,
+  type Edition,
   type CharacterEdit,
   type CharacterView,
   type FoundSave,
@@ -12,6 +14,29 @@ import {
 import { errorText, initialLang, translate, type Key, type Lang } from './i18n';
 
 export type Tab = 'status' | 'inventory' | 'transfer' | 'file';
+
+/** Per-user preferences, kept in this machine's WebView storage. */
+export interface Settings {
+  /** Show the "what changed" summary after a transfer. */
+  showTransferReport: boolean;
+  /** Install folders the user pointed at, per release. */
+  gameDirs: Partial<Record<Edition, string>>;
+}
+
+const DEFAULT_SETTINGS: Settings = { showTransferReport: true, gameDirs: {} };
+
+function loadSettings(): Settings {
+  try {
+    return { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem('settings') ?? '{}') };
+  } catch {
+    return DEFAULT_SETTINGS;
+  }
+}
+
+export interface TransferReportView {
+  path: string;
+  changes: Change[];
+}
 
 /** Status values being edited; shown in blue until saved, like the Level Up screen. */
 export interface Draft {
@@ -46,6 +71,9 @@ interface State {
   toasts: Toast[];
   confirm: Confirm | null;
   busy: boolean;
+  settings: Settings;
+  settingsOpen: boolean;
+  report: TransferReportView | null;
 
   setLang: (lang: Lang) => void;
   t: (key: Key, vars?: Record<string, string | number>) => string;
@@ -64,6 +92,9 @@ interface State {
   fail: (e: unknown) => void;
   ask: (text: string, onYes: () => void) => void;
   closeConfirm: () => void;
+  setSettings: (patch: Partial<Settings>) => void;
+  setSettingsOpen: (open: boolean) => void;
+  showReport: (report: TransferReportView | null) => void;
 }
 
 export function draftOf(c: CharacterView): Draft {
@@ -98,6 +129,9 @@ export const useStore = create<State>((set, get) => ({
   toasts: [],
   confirm: null,
   busy: false,
+  settings: loadSettings(),
+  settingsOpen: false,
+  report: null,
 
   setLang: (lang) => {
     try {
@@ -236,7 +270,18 @@ export const useStore = create<State>((set, get) => ({
   },
   fail: (e) => get().toast(errorText(get().lang, e), 'error'),
   ask: (text, onYes) => set({ confirm: { text, onYes } }),
-  closeConfirm: () => set({ confirm: null })
+  closeConfirm: () => set({ confirm: null }),
+  setSettings: (patch) => {
+    const settings = { ...get().settings, ...patch };
+    try {
+      localStorage.setItem('settings', JSON.stringify(settings));
+    } catch {
+      /* storage unavailable: the setting lasts for this session */
+    }
+    set({ settings });
+  },
+  setSettingsOpen: (settingsOpen) => set({ settingsOpen }),
+  showReport: (report) => set({ report })
 }));
 
 /** Whether anything is waiting to be written: in-memory edits or a status draft. */

@@ -3,13 +3,16 @@ import type { Category, ItemDef } from '../api';
 import { useStore } from '../store';
 import { useT, type Key } from '../i18n';
 import { CATEGORY_ORDER, INFUSIONS } from '../game';
-import { CategoryIcon } from './icons';
+import { CategoryIcon, Chevron, ItemIcon } from './icons';
 
 const ADDABLE = CATEGORY_ORDER.filter((c) => !['key', 'gesture', 'unknown'].includes(c));
-const STACKABLE: Category[] = ['consumable', 'multiplayer', 'upgrade', 'ammo', 'bossSoul'];
 const REINFORCEABLE: Category[] = ['weapon', 'shield', 'armor'];
 
-export function AddItemDialog({ onClose }: { onClose: () => void }) {
+/**
+ * The game's whole item catalogue, as its own view in place of the inventory list: the
+ * inventory itself only ever shows what the save holds.
+ */
+export function AddItemView({ onClose }: { onClose: () => void }) {
   const t = useT();
   const loadCatalog = useStore((s) => s.loadCatalog);
   const edit = useStore((s) => s.editInventory);
@@ -45,84 +48,100 @@ export function AddItemDialog({ onClose }: { onClose: () => void }) {
     });
   }, [catalog, cat, q]);
 
-  const add = async (item: ItemDef | null = picked) => {
-    if (!item) return;
+  const max = picked ? Math.max(1, picked.maxHeld || 1) : 1;
+  const countable = !!picked && max > 1;
+
+  const add = async () => {
+    if (!picked) return;
     const ok = await edit([
       {
         op: 'add',
-        id: item.id,
-        quantity: STACKABLE.includes(item.cat) ? quantity : 1,
-        reinforcement: REINFORCEABLE.includes(item.cat) ? plus : 0,
-        infusion: item.cat === 'weapon' || item.cat === 'shield' ? infusion : 0
+        id: picked.id,
+        quantity: countable ? Math.min(quantity, max) : 1,
+        reinforcement: REINFORCEABLE.includes(picked.cat) ? plus : 0,
+        infusion: picked.cat === 'weapon' || picked.cat === 'shield' ? infusion : 0
       }
     ]);
-    if (ok) onClose();
+    if (ok) useStore.getState().toast(t('inv.added', { name: picked.name }));
   };
 
   return (
-    <div className="scrim" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="panel dialog wide" role="dialog" aria-label={t('inv.addTitle')}>
-        <div className="panel-head">
-          <h2 className="panel-title">{t('inv.addTitle')}</h2>
-          <hr className="rule" />
+    <div className="add-view">
+      <div className="inv-tools">
+        <button className="btn quiet" onClick={onClose}>
+          <Chevron dir="left" size={15} />
+          {t('inv.back')}
+        </button>
+        <input className="field" autoFocus placeholder={t('inv.searchAll')} value={query} onChange={(e) => setQuery(e.target.value)} spellCheck={false} />
+        <span className="counts">{t('inv.addLead')}</span>
+      </div>
+      <div className="add-grid">
+        <div className="list inv-cats">
+          {ADDABLE.map((c) => (
+            <button key={c} className="row" aria-selected={!q && cat === c} onClick={() => (setCat(c), setQuery(''))}>
+              <CategoryIcon category={c} size={16} />
+              {t(`cat.${c}` as Key)}
+            </button>
+          ))}
         </div>
-        <div style={{ padding: '12px 22px' }}>
-          <input className="field" style={{ textAlign: 'left' }} autoFocus placeholder={t('inv.search')} value={query} onChange={(e) => setQuery(e.target.value)} spellCheck={false} />
+        <div className="list">
+          {list.length === 0 && <p className="empty-note">{t('inv.none')}</p>}
+          {list.map((i) => (
+            <button
+              key={i.id}
+              className="row catalog-row"
+              aria-selected={picked?.id === i.id}
+              onClick={() => (setPicked(i), setQuantity(1), setPlus(0), setInfusion(0))}
+            >
+              <ItemIcon icon={i.icon} category={i.cat} className="item-card small" />
+              <span>{i.name}</span>
+              {i.slot && <span className="dim slot-tag">{i.slot}</span>}
+            </button>
+          ))}
         </div>
-        <div className="add-grid">
-          <div className="list inv-cats">
-            {ADDABLE.map((c) => (
-              <button key={c} className="row" aria-selected={!q && cat === c} onClick={() => (setCat(c), setQuery(''))}>
-                <CategoryIcon category={c} size={16} />
-                {t(`cat.${c}` as Key)}
+        <div className="add-detail">
+          {picked ? (
+            <>
+              <ItemIcon icon={picked.icon} category={picked.cat} className="item-card large" />
+              <h3 className="item-title">{picked.name}</h3>
+              <div className="dim">
+                {t(`cat.${picked.cat}` as Key)}
+                {picked.maxHeld > 1 && <>, {t('inv.maxHeld', { n: picked.maxHeld })}</>}
+              </div>
+              <div className="add-opts">
+                {countable && (
+                  <label>
+                    {t('inv.quantity')}
+                    <input className="field" type="number" min={1} max={max} value={quantity} onChange={(e) => setQuantity(Math.max(1, Math.min(max, Number(e.target.value) || 1)))} />
+                  </label>
+                )}
+                {REINFORCEABLE.includes(picked.cat) && (
+                  <label>
+                    {t('inv.reinforcement')}
+                    <input className="field" type="number" min={0} max={10} value={plus} onChange={(e) => setPlus(Math.max(0, Math.min(10, Number(e.target.value) || 0)))} />
+                  </label>
+                )}
+                {(picked.cat === 'weapon' || picked.cat === 'shield') && (
+                  <label>
+                    {t('inv.infusion')}
+                    <select className="field" value={infusion} onChange={(e) => setInfusion(Number(e.target.value))}>
+                      {INFUSIONS.map((n, i) => (
+                        <option key={n} value={i}>
+                          {n}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+              </div>
+              <button className="btn ember" onClick={() => void add()}>
+                {t('inv.addConfirm')}
               </button>
-            ))}
-          </div>
-          <div className="list">
-            {list.length === 0 && <p className="empty-note">{t('inv.none')}</p>}
-            {list.map((i) => (
-              <button key={i.id} className="row" style={{ padding: '6px 18px' }} aria-selected={picked?.id === i.id} onClick={() => setPicked(i)} onDoubleClick={() => void add(i)}>
-                <CategoryIcon category={i.cat} size={16} />
-                <span>{i.name}</span>
-                {i.slot && <span style={{ marginLeft: 'auto', color: 'var(--dim)', fontSize: 14 }}>{i.slot}</span>}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="add-opts">
-          {picked && STACKABLE.includes(picked.cat) && (
-            <label>
-              {t('inv.quantity')}
-              <input className="field" type="number" min={1} max={picked.cat === 'ammo' ? 999 : 99} value={quantity} onChange={(e) => setQuantity(Math.max(1, Math.min(picked.cat === 'ammo' ? 999 : 99, Number(e.target.value) || 1)))} />
-            </label>
+              <p className="note">{t('inv.addWarning')}</p>
+            </>
+          ) : (
+            <p className="note">{t('inv.pick')}</p>
           )}
-          {picked && REINFORCEABLE.includes(picked.cat) && (
-            <label>
-              {t('inv.reinforcement')}
-              <input className="field" type="number" min={0} max={10} value={plus} onChange={(e) => setPlus(Math.max(0, Math.min(10, Number(e.target.value) || 0)))} />
-            </label>
-          )}
-          {picked && (picked.cat === 'weapon' || picked.cat === 'shield') && (
-            <label>
-              {t('inv.infusion')}
-              <select className="field" value={infusion} onChange={(e) => setInfusion(Number(e.target.value))}>
-                {INFUSIONS.map((n, i) => (
-                  <option key={n} value={i}>
-                    {n}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
-        </div>
-        <p className="note" style={{ padding: '0 22px' }}>{t('inv.addWarning')}</p>
-        <div className="choices" style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, padding: '16px 22px 20px' }}>
-          <button className="btn quiet" onClick={onClose}>
-            {t('confirm.no')}
-          </button>
-          <button className="btn ember" disabled={!picked} onClick={() => void add()}>
-            {picked ? `${t('inv.addConfirm')}: ${picked.name}` : t('inv.addConfirm')}
-          </button>
         </div>
       </div>
     </div>

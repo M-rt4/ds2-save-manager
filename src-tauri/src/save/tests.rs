@@ -277,3 +277,69 @@ fn inspect_file() {
     }
     assert_eq!(s.encode(), raw, "re-encoding an unchanged real save must reproduce it byte for byte");
 }
+
+#[test]
+fn conform_gives_a_save_the_targets_system_data() {
+    let src = save(Edition::Original, &[(0, "Nele", 37)]);
+    let mut bnd = b"BND4".to_vec();
+    bnd.resize(0x200, 3);
+    bnd[0x18..0x20].copy_from_slice(b"02000100");
+    let mut reg = dummy_regulation(bnd);
+    reg.set_stamp(0x65);
+    let fmt = transfer::TargetFormat { edition: Edition::Scholar, regulation: reg, capacity: 8192, title_version: 0x6E };
+    let mut out = transfer::convert(&src, Edition::Scholar);
+    transfer::conform(&mut out, &fmt).unwrap();
+    let reread = SaveFile::parse(out.encode()).unwrap();
+    assert_eq!(reread.source_edition, Edition::Scholar);
+    assert_eq!(reread.block(21).len(), 8192);
+    assert_eq!(transfer::regulation_info(&reread).unwrap().stamp, 0x65);
+    let title = super::chunks::find(reread.block(SUMMARY_ENTRY), header::TITLE_CHUNK).unwrap();
+    assert_eq!(title.version, 0x6E);
+    assert_eq!(character::summary(&reread, 0).name, "Nele");
+    assert!(reread.checksum_failures().is_empty());
+}
+
+fn dummy_regulation(bnd: Vec<u8>) -> super::regulation::Regulation {
+    use std::io::Write;
+    let mut enc = flate2::write::ZlibEncoder::new(Vec::new(), flate2::Compression::default());
+    enc.write_all(&bnd).unwrap();
+    let packed = enc.finish().unwrap();
+    let mut entry = (packed.len() as u32).to_le_bytes().to_vec();
+    entry.extend_from_slice(&(bnd.len() as u32).to_le_bytes());
+    entry.extend_from_slice(&packed);
+    super::regulation::Regulation::from_entry(&entry).unwrap()
+}
+
+/// Conforms a real save to a real target, for checking by hand:
+/// `DS2_CONFORM_SRC=<save> DS2_CONFORM_BASE=<save the target game wrote> DS2_GAME_DIR=<game> DS2_CONFORM_OUT=<file>`
+#[test]
+#[ignore]
+fn conform_real_files() {
+    use super::regulation::Regulation;
+    let var = |k: &str| std::env::var_os(k).map(std::path::PathBuf::from).unwrap_or_else(|| panic!("{k}"));
+    let src = SaveFile::parse(std::fs::read(var("DS2_CONFORM_SRC")).unwrap()).unwrap();
+    let base = SaveFile::parse(std::fs::read(var("DS2_CONFORM_BASE")).unwrap()).unwrap();
+    let from_save = transfer::TargetFormat::from_save(&base).unwrap();
+    let from_install = transfer::TargetFormat::from_install(base.source_edition, &var("DS2_GAME_DIR")).unwrap();
+    eprintln!("base regulation {:?}", from_save.regulation.info());
+    eprintln!("install regulation {:?}", from_install.regulation.info());
+    assert_eq!(from_install.regulation, from_save.regulation, "installed regulation + exe stamp must equal what the game writes");
+    assert_eq!((from_install.capacity, from_install.title_version), (from_save.capacity, from_save.title_version));
+    eprintln!("source regulation {:?}", transfer::regulation_info(&src));
+
+    let mut out = transfer::convert(&src, base.source_edition);
+    transfer::conform(&mut out, &from_install).unwrap();
+    let account = header::steam_id(base.block(HEADER_ENTRY)).unwrap();
+    header::set_steam_id(out.block_mut(HEADER_ENTRY), account).unwrap();
+    let bytes = out.encode();
+    let reread = SaveFile::parse(bytes.clone()).unwrap();
+    assert_eq!(bytes.len(), base.raw().len(), "same container size as a save the game wrote");
+    for i in 0..reread.block_count() {
+        assert_eq!(reread.entries()[i].size, base.entries()[i].size, "entry {i} size");
+        assert_eq!(reread.entries()[i].offset, base.entries()[i].offset, "entry {i} offset");
+    }
+    assert_eq!(Regulation::from_entry(reread.block(21)).unwrap(), from_save.regulation);
+    assert_eq!(&bytes[..0x40], &base.raw()[..0x40], "BND4 header");
+    eprintln!("ok: {} bytes, account {account}, {}", bytes.len(), character::summary(&reread, 0).name);
+    std::fs::write(var("DS2_CONFORM_OUT"), bytes).unwrap();
+}

@@ -1,11 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useStore } from '../store';
 import { useT } from '../i18n';
+import { ChangeList } from './ChangeList';
+import { SettingsView } from './SettingsView';
 
 /** Toasts as the game's message strip, and the game's Yes / No prompt. */
 export function Overlays() {
   const toasts = useStore((s) => s.toasts);
   const confirm = useStore((s) => s.confirm);
+  const report = useStore((s) => s.report);
+  const settingsOpen = useStore((s) => s.settingsOpen);
   return (
     <>
       <div className="toasts" role="status" aria-live="polite">
@@ -16,7 +20,52 @@ export function Overlays() {
         ))}
       </div>
       {confirm && <Confirm text={confirm.text} onYes={confirm.onYes} />}
+      {report && <Report />}
+      {settingsOpen && <SettingsView />}
     </>
+  );
+}
+
+/** After a transfer: every change made to the written file, with a way to stop showing it. */
+function Report() {
+  const t = useT();
+  const report = useStore((s) => s.report)!;
+  const close = useStore((s) => s.showReport);
+  const setSettings = useStore((s) => s.setSettings);
+  const [dontShow, setDontShow] = useState(false);
+  const done = () => {
+    if (dontShow) setSettings({ showTransferReport: false });
+    close(null);
+  };
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => (e.key === 'Escape' || e.key === 'Enter') && done();
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
+  return (
+    <div className="scrim">
+      <div className="panel dialog wide" role="dialog" aria-label={t('report.title')}>
+        <div className="panel-head">
+          <h2 className="panel-title">{t('report.title')}</h2>
+          <hr className="rule" />
+        </div>
+        <div className="report-body">
+          <p className="note" style={{ marginTop: 0, userSelect: 'text' }}>
+            {t('report.written', { path: report.path })}
+          </p>
+          <ChangeList changes={report.changes} />
+        </div>
+        <div className="report-foot">
+          <label className="check">
+            <input type="checkbox" checked={dontShow} onChange={(e) => setDontShow(e.target.checked)} />
+            {t('report.dontShow')}
+          </label>
+          <button className="btn" onClick={done}>
+            {t('report.ok')}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 

@@ -2,11 +2,9 @@ import { useMemo, useState } from 'react';
 import type { Category, CharacterView, Item } from '../api';
 import { useStore } from '../store';
 import { useT, type Key } from '../i18n';
-import { CategoryIcon, Cross, Plus } from './icons';
-import { AddItemDialog } from './AddItemDialog';
+import { CategoryIcon, Cross, ItemIcon, Plus } from './icons';
+import { AddItemView } from './AddItemDialog';
 import { CATEGORY_ORDER } from '../game';
-
-const STACK_MAX: Partial<Record<Category, number>> = { ammo: 999 };
 
 export function InventoryTab({ character }: { character: CharacterView }) {
   const t = useT();
@@ -26,6 +24,8 @@ export function InventoryTab({ character }: { character: CharacterView }) {
   const sorted = [...shown].sort(
     (a, b) => CATEGORY_ORDER.indexOf(a.category) - CATEGORY_ORDER.indexOf(b.category) || a.offset - b.offset
   );
+
+  if (adding) return <AddItemView onClose={() => setAdding(false)} />;
 
   return (
     <div className="inv">
@@ -62,7 +62,6 @@ export function InventoryTab({ character }: { character: CharacterView }) {
           {(cat === 'key' || cat === 'gesture') && <p className="note" style={{ padding: '0 18px' }}>{t('inv.readOnly')}</p>}
         </div>
       </div>
-      {adding && <AddItemDialog onClose={() => setAdding(false)} />}
     </div>
   );
 }
@@ -71,15 +70,16 @@ function ItemRow({ item, editable }: { item: Item; editable: boolean }) {
   const t = useT();
   const edit = useStore((s) => s.editInventory);
   const [qty, setQty] = useState<string | null>(null);
-  const readOnly = !editable || item.region === 'keys' || item.category === 'key' || item.category === 'gesture';
-  const countable = item.quantity !== null && !['spell', 'key', 'gesture', 'unknown'].includes(item.category);
+  // Key items and gestures live in their own region, which the editor leaves alone.
+  const readOnly = !editable || item.region === 'keys';
+  const max = item.maxQuantity;
 
   const commit = async () => {
     if (qty === null) return;
     const n = Math.round(Number(qty));
     setQty(null);
     if (Number.isFinite(n) && n > 0 && n !== item.quantity) {
-      await edit([{ op: 'setQuantity', offset: item.offset, quantity: Math.min(n, STACK_MAX[item.category] ?? 99) }]);
+      await edit([{ op: 'setQuantity', offset: item.offset, quantity: Math.min(n, max ?? 1) }]);
     }
   };
 
@@ -92,9 +92,7 @@ function ItemRow({ item, editable }: { item: Item; editable: boolean }) {
 
   return (
     <div className="row item" role="listitem">
-      <span className="icon">
-        <CategoryIcon category={item.category} size={18} />
-      </span>
+      <ItemIcon icon={item.icon} category={item.category} />
       <span className="nm">
         {item.infusion && <span className="inf">{item.infusion} </span>}
         {item.name}
@@ -102,12 +100,12 @@ function ItemRow({ item, editable }: { item: Item; editable: boolean }) {
         {detail.length > 0 && <span className="detail">{detail.join(', ')}</span>}
       </span>
       <span className="actions">
-        {countable && !readOnly ? (
+        {max !== null && !readOnly ? (
           <input
             className="field"
             type="number"
             min={1}
-            max={STACK_MAX[item.category] ?? 99}
+            max={max}
             value={qty ?? item.quantity ?? 0}
             onChange={(e) => setQty(e.target.value)}
             onBlur={() => void commit()}
@@ -115,7 +113,7 @@ function ItemRow({ item, editable }: { item: Item; editable: boolean }) {
             aria-label={t('inv.quantity')}
           />
         ) : (
-          item.quantity !== null && item.category !== 'gesture' && <span className="qty">{item.quantity}</span>
+          item.quantity !== null && item.category !== 'gesture' && item.category !== 'spell' && <span className="qty">{item.quantity}</span>
         )}
         {!readOnly && (
           <button className="icon-btn" title={t('inv.remove')} onClick={() => void edit([{ op: 'remove', offset: item.offset }])}>

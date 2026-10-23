@@ -1,6 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod commands;
+mod conversion;
 
 use tauri::{WebviewUrl, WebviewWindowBuilder};
 
@@ -39,11 +40,9 @@ fn main() {
             commands::item_catalog,
             commands::write_save,
             commands::set_account,
-            commands::plan_conversion,
-            commands::run_conversion,
-            commands::compare_saves,
-            commands::transfer_character,
-            commands::default_target,
+            conversion::plan_conversion,
+            conversion::run_conversion,
+            conversion::default_target,
         ])
         .run(tauri::generate_context!())
         .expect("error while running DS2 Save Manager");

@@ -68,6 +68,23 @@ pub struct ItemDef {
     pub cat: Category,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub slot: Option<String>,
+    /// The game's icon id (ItemParam), served as `/icons/<icon>.webp`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub icon: Option<u32>,
+    /// How many the player can hold (ItemParam "Max Held"); 0 when the game leaves it unset.
+    #[serde(default)]
+    pub max_held: u16,
+}
+
+impl ItemDef {
+    /// Largest count the editor writes: the game's own limit, else the category's.
+    pub fn max_quantity(&self) -> u16 {
+        if self.max_held > 0 {
+            self.max_held
+        } else {
+            self.cat.max_stack()
+        }
+    }
 }
 
 pub struct Catalog {
@@ -84,8 +101,17 @@ impl Catalog {
 pub fn catalog() -> &'static Catalog {
     static CATALOG: OnceLock<Catalog> = OnceLock::new();
     CATALOG.get_or_init(|| {
-        let items: Vec<ItemDef> =
+        let mut items: Vec<ItemDef> =
             serde_json::from_str(include_str!("../../data/items.json")).expect("data/items.json is valid");
+        // Icon and max-held per item id, from the game's ItemParam (scripts/build-item-icons.py).
+        let params: HashMap<u32, (Option<u32>, u16)> =
+            serde_json::from_str(include_str!("../../data/item_params.json")).expect("data/item_params.json is valid");
+        for item in &mut items {
+            if let Some(&(icon, held)) = params.get(&item.id) {
+                item.icon = icon;
+                item.max_held = held;
+            }
+        }
         let by_id = items.iter().enumerate().map(|(i, it)| (it.id, i)).collect();
         Catalog { items, by_id }
     })
@@ -104,5 +130,11 @@ mod tests {
         assert!(c.items.len() > 1000);
         assert_eq!(c.get(1_000_000).unwrap().name, "Dagger");
         assert_eq!(c.get(21_010_100).unwrap().cat, Category::Armor);
+        // Life Ring+3 shows the base ring's icon; boss souls share the game's generic one.
+        assert_eq!(c.get(40_010_003).unwrap().icon, Some(40_010_000));
+        assert_eq!(c.get(64_010_000).unwrap().icon, Some(64_000_000));
+        assert_eq!(c.get(60_970_000).unwrap().max_quantity(), 99);
+        assert_eq!(c.get(60_800_000).unwrap().max_quantity(), 999);
+        assert_eq!(c.get(60_155_000).unwrap().max_quantity(), 1);
     }
 }

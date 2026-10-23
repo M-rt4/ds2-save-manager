@@ -1,22 +1,25 @@
 import { useEffect, useState } from 'react';
-import { save as saveDialog } from '@tauri-apps/plugin-dialog';
-import { api, type ConversionMode, type ConversionPlan, type Edition, type SaveView, type SlotView, type WriteReport } from '../api';
+import { open, save as saveDialog } from '@tauri-apps/plugin-dialog';
+import { api, type ConversionPlan, type ConversionRequest, type Edition, type SaveView, type SlotView } from '../api';
 import { useStore } from '../store';
 import { errorText, useT } from '../i18n';
 import { editionName } from '../game';
+import { ChangeList } from './ChangeList';
 import { Bonfire } from './icons';
 
 const other = (e: Edition): Edition => (e === 'scholar' ? 'original' : 'scholar');
 const norm = (p: string) => p.replaceAll('/', '\\').toLowerCase();
+const fileOf = (p: string) => p.split(/[\\/]/).pop() ?? p;
+const folderOf = (p: string) => p.split(/[\\/]/).slice(-2, -1)[0] ?? '';
+
 /** File name over its account folder; the full path goes into the tooltip. */
 function ShortPath({ path }: { path: string }) {
-  const parts = path.split(/[\\/]/);
   return (
-    <>
-      <b style={{ fontWeight: 500, color: 'var(--bone)', fontSize: 15 }}>{parts.at(-1)}</b>
+    <div className="path" title={path}>
+      <b>{fileOf(path)}</b>
       <br />
-      {parts.at(-2)}
-    </>
+      {folderOf(path)}
+    </div>
   );
 }
 
@@ -24,112 +27,104 @@ export function TransferTab({ doc }: { doc: SaveView }) {
   const t = useT();
   const lang = useStore((s) => s.lang);
   const store = useStore();
+  const settings = useStore((s) => s.settings);
   const [kind, setKind] = useState<'whole' | 'single'>('whole');
   const [targetEdition, setTargetEdition] = useState<Edition>(other(doc.sourceEdition));
   const [targetPath, setTargetPath] = useState('');
-  const [mode, setMode] = useState<ConversionMode>('merge');
   const [plan, setPlan] = useState<ConversionPlan | null>(null);
-  const [planError, setPlanError] = useState<string | null>(null);
   const [fromSlot, setFromSlot] = useState<number | null>(store.slot ?? doc.slots.find((s) => s.occupied)?.slot ?? null);
   const [toSlot, setToSlot] = useState<number | null>(null);
+  const [account, setAccount] = useState('');
+  const [editingAccount, setEditingAccount] = useState(false);
   const [running, setRunning] = useState(false);
-  const [result, setResult] = useState<WriteReport | null>(null);
   const [generation, setGeneration] = useState(0);
 
-  useEffect(() => {
-    setTargetEdition(other(doc.sourceEdition));
-    setResult(null);
-  }, [doc.path, doc.sourceEdition]);
-
+  useEffect(() => setTargetEdition(other(doc.sourceEdition)), [doc.path, doc.sourceEdition]);
   useEffect(() => {
     void api.defaultTarget(doc.path, targetEdition).then(setTargetPath);
   }, [doc.path, targetEdition]);
 
-  const exists = plan?.targetExists ?? false;
-  const effectiveMode: ConversionMode = exists ? mode : 'replace';
+  const gameDir = settings.gameDirs[targetEdition] ?? null;
+  const request: ConversionRequest = {
+    sourceId: doc.id,
+    slot: kind === 'single' && fromSlot !== null && toSlot !== null ? [fromSlot, toSlot] : null,
+    targetEdition,
+    targetPath,
+    account: editingAccount && account.trim() ? account.trim() : null,
+    gameDir
+  };
+  const key = JSON.stringify(request);
 
   useEffect(() => {
-    if (!targetPath) return;
+    if (!targetPath || (kind === 'single' && request.slot === null)) return;
     let live = true;
-    setPlanError(null);
     api
-      .planConversion({ sourceId: doc.id, targetEdition, targetPath, mode: effectiveMode })
+      .planConversion(request)
       .then((p) => live && setPlan(p))
-      .catch((e) => live && (setPlan(null), setPlanError(errorText(lang, e))));
+      .catch((e) => live && store.fail(e));
     return () => {
       live = false;
     };
-  }, [doc.id, targetEdition, targetPath, effectiveMode, generation, lang]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, generation]);
 
-  const sameFile = !!targetPath && norm(targetPath) === norm(doc.path);
-  const compat = plan?.compatibility;
-  const targetOk = exists && !plan?.targetError && (compat?.compatible ?? false);
-  const fromOk = fromSlot !== null && doc.slots[fromSlot]?.occupied;
+  // A single character needs a target first: plan the whole move just to read the target.
+  useEffect(() => {
+    if (kind !== 'single' || request.slot !== null || !targetPath) return;
+    void api
+      .planConversion({ ...request, slot: null })
+      .then(setPlan)
+      .catch(() => undefined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kind, targetPath, targetEdition, request.slot === null, generation]);
 
-  const ready =
-    !!plan &&
-    !running &&
-    !store.gameRunning &&
-    (kind === 'whole'
-      ? !sameFile && (effectiveMode === 'replace' || targetOk)
-      : targetOk && fromOk && toSlot !== null && !(sameFile && fromSlot === toSlot));
+  const singleReady = kind === 'single' && request.slot !== null;
+  const blocked = plan?.blocked ?? null;
+  const ready = !!plan && !running && !store.gameRunning && !blocked && (kind === 'whole' || singleReady);
 
-  const targetName = targetPath.split(/[\\/]/).pop() ?? targetPath;
-
-  const choose = async () => {
-    const picked = await saveDialog({
-      defaultPath: targetPath,
-      filters: [{ name: 'Dark Souls II save', extensions: ['sl2'] }]
-    });
+  const chooseTarget = async () => {
+    const picked = await saveDialog({ defaultPath: targetPath, filters: [{ name: 'Dark Souls II save', extensions: ['sl2'] }] });
     if (picked) setTargetPath(picked);
   };
-
-  const afterWrite = async (report: WriteReport) => {
-    setResult(report);
-    setGeneration((g) => g + 1);
-    await store.refreshSaves();
-    if (norm(report.path) === norm(doc.path)) {
-      store.setDoc(await api.getSave(doc.id));
-      if (store.slot !== null) await store.selectSlot(store.slot);
-    }
+  const chooseGameDir = async () => {
+    const dir = await open({ directory: true, multiple: false, title: editionName(targetEdition) });
+    if (typeof dir === 'string') store.setSettings({ gameDirs: { ...settings.gameDirs, [targetEdition]: dir } });
   };
 
-  const runWhole = () =>
-    store.ask(t('confirm.transfer', { file: targetName }), async () => {
+  const run = () => {
+    const question =
+      kind === 'whole'
+        ? t('confirm.transfer', { file: fileOf(targetPath), folder: folderOf(targetPath) })
+        : t('confirm.single', { name: doc.slots[fromSlot!].name, slot: toSlot! + 1, file: fileOf(targetPath) });
+    store.ask(question, async () => {
       setRunning(true);
       try {
-        await afterWrite(await api.runConversion({ sourceId: doc.id, targetEdition, targetPath, mode: effectiveMode }));
+        const report = await api.runConversion(request);
+        setGeneration((g) => g + 1);
+        await store.refreshSaves();
+        if (norm(report.path) === norm(doc.path)) {
+          store.setDoc(await api.getSave(doc.id));
+          if (store.slot !== null) await store.selectSlot(store.slot);
+        }
+        if (useStore.getState().settings.showTransferReport) store.showReport({ path: report.path, changes: report.changes });
+        else store.toast(t('transfer.done', { path: report.path }));
       } catch (e) {
         store.fail(e);
       } finally {
         setRunning(false);
       }
     });
-
-  const runSingle = () => {
-    if (fromSlot === null || toSlot === null) return;
-    const name = doc.slots[fromSlot].name;
-    store.ask(t('confirm.single', { name, slot: toSlot + 1, file: targetName }), async () => {
-      setRunning(true);
-      let opened: string | null = null;
-      try {
-        const targetId = sameFile ? doc.id : (opened = (await api.openSave(targetPath)).id);
-        await api.transferCharacter(doc.id, fromSlot, targetId, toSlot);
-        await afterWrite(await api.writeSave(targetId));
-      } catch (e) {
-        store.fail(e);
-      } finally {
-        if (opened) await api.closeSave(opened).catch(() => undefined);
-        setRunning(false);
-      }
-    });
   };
+
+  const accounts = plan?.accounts;
+  const sourceReg = plan?.sourceRegulation;
 
   return (
     <div className="panel-body">
       <div className="transfer">
         <p className="lead">{t('transfer.lead')}</p>
 
+        <h3 className="step">{t('transfer.stepWhat')}</h3>
         <div className="choice">
           <button className="row" aria-pressed={kind === 'whole'} onClick={() => setKind('whole')}>
             <b>{t('transfer.whole')}</b>
@@ -141,13 +136,14 @@ export function TransferTab({ doc }: { doc: SaveView }) {
           </button>
         </div>
 
+        <h3 className="step">{t('transfer.stepWhere')}</h3>
         <div className="journey">
           <div className="side">
             <h4>{t('transfer.from')}</h4>
             <div className={`edition ${doc.sourceEdition}`}>{editionName(doc.sourceEdition)}</div>
-            <div className="path" title={doc.path}>
-              <ShortPath path={doc.path} />
-            </div>
+            <ShortPath path={doc.path} />
+            {sourceReg && <div className="meta-line">{t('transfer.gameData', { game: sourceReg.gameVersion, version: sourceReg.version })}</div>}
+            {kind === 'single' && <p className="note">{t('transfer.pickFrom')}</p>}
             <MiniSlots
               slots={doc.slots}
               pick={kind === 'single' ? fromSlot : null}
@@ -170,92 +166,127 @@ export function TransferTab({ doc }: { doc: SaveView }) {
                 </button>
               ))}
             </div>
-            <div className="path" title={targetPath}>
-              <ShortPath path={targetPath} />{' '}
-              <button className="btn quiet" style={{ padding: '0 6px', fontSize: 14 }} onClick={() => void choose()}>
-                {t('transfer.choose')}
-              </button>
-            </div>
-            {plan && (exists ? <p className="note">{t('transfer.exists')}</p> : <p className="note">{t('transfer.new')}</p>)}
+            <ShortPath path={targetPath} />
+            <button className="btn quiet small" onClick={() => void chooseTarget()}>
+              {t('transfer.choose')}
+            </button>
+            {plan && (
+              <p className="note">
+                {plan.targetExists ? t('transfer.exists') : t('transfer.new')}
+              </p>
+            )}
             {plan?.targetSlots && (
-              <MiniSlots
-                slots={plan.targetSlots}
-                pick={kind === 'single' ? toSlot : null}
-                onPick={kind === 'single' ? setToSlot : undefined}
-                emptyText={t('transfer.intoEmpty')}
-              />
+              <>
+                {kind === 'single' && <p className="note">{t('transfer.pickTo')}</p>}
+                <MiniSlots
+                  slots={plan.targetSlots}
+                  pick={kind === 'single' ? toSlot : null}
+                  onPick={kind === 'single' ? setToSlot : undefined}
+                  emptyText={t('transfer.intoEmpty')}
+                />
+              </>
             )}
           </div>
         </div>
 
-        {kind === 'whole' && exists && (
-          <div className="modes">
-            <button className="row" aria-pressed={mode === 'merge'} onClick={() => setMode('merge')}>
-              <span className="radio" />
-              <span>
-                <b>{t('transfer.modeMerge')}</b>
-                <span>{t('transfer.modeMergeHint')}</span>
+        <h3 className="step">{t('transfer.stepGame')}</h3>
+        <div className="info">
+          {plan?.format ? (
+            <>
+              {t('transfer.formatLine', {
+                edition: editionName(targetEdition),
+                game: plan.format.regulation.gameVersion,
+                version: plan.format.regulation.version
+              })}
+              <br />
+              <span className="dim">
+                {plan.format.kind === 'install'
+                  ? t('transfer.formatInstall', { path: plan.format.path })
+                  : plan.format.kind === 'targetFile'
+                    ? t('transfer.formatTargetFile', { file: fileOf(plan.format.path) })
+                    : t('transfer.formatOtherSave', { path: plan.format.path })}
               </span>
+            </>
+          ) : (
+            t('transfer.formatUnknown', { edition: editionName(targetEdition) })
+          )}
+          <div style={{ marginTop: 8 }}>
+            <button className="btn small" onClick={() => void chooseGameDir()}>
+              {gameDir ? t('transfer.changeGameDir') : t('transfer.chooseGameDir', { edition: editionName(targetEdition) })}
             </button>
-            <button className="row" aria-pressed={mode === 'replace'} onClick={() => setMode('replace')}>
-              <span className="radio" />
-              <span>
-                <b>{t('transfer.modeReplace')}</b>
-                <span>{t('transfer.modeReplaceHint')}</span>
-              </span>
-            </button>
+            {gameDir && <span className="dim" style={{ marginLeft: 10 }}>{gameDir}</span>}
           </div>
-        )}
+        </div>
 
-        <div className="notes">
-          {planError && <div className="warn" style={{ margin: 0 }}>{planError}</div>}
-          {kind === 'whole' && sameFile && <div className="warn" style={{ margin: 0 }}>{t('transfer.sameFile')}</div>}
-          {kind === 'single' && plan && !exists && <div className="warn" style={{ margin: 0 }}>{t('transfer.needsTarget')}</div>}
-          {plan?.targetError && (
-            <div className="warn" style={{ margin: 0 }}>{t('transfer.targetUnreadable', { msg: errorText(lang, plan.targetError) })}</div>
-          )}
-          {compat && !compat.compatible && (kind === 'single' || effectiveMode === 'merge') && (
-            <div className="warn" style={{ margin: 0 }}>
-              {t('transfer.incompatible')} {compat.problems.join(' ')}
-            </div>
-          )}
-          {compat && compat.versionNotes.length > 0 && (
-            <div className="info">
-              {t('transfer.versionNotes')}
-              <div style={{ marginTop: 6, fontSize: 14, color: 'var(--dim)' }}>
-                {compat.versionNotes.map((v) => (
-                  <span key={`${v.entry}-${v.chunk}`} className="chunk">
-                    #{v.entry}/{v.chunk.toString(16)}: {v.source.toString(16)} → {v.target.toString(16)}
-                  </span>
-                ))}
+        <h3 className="step">{t('transfer.stepAccount')}</h3>
+        <div className="info">
+          {accounts && (
+            <div className="kv compact">
+              <div className="k">{t('transfer.accountSource')}</div>
+              <div className="v">{accounts.source ?? '—'}</div>
+              <div className="k">{t('transfer.accountFolder')}</div>
+              <div className="v">{accounts.targetFolder ?? t('transfer.accountNoFolder')}</div>
+              <div className="k">{t('transfer.accountResult')}</div>
+              <div className="v strong">
+                {accounts.result ?? '—'}{' '}
+                <span className="dim">{t(`transfer.accountOrigin.${accounts.origin}` as never)}</span>
               </div>
             </div>
           )}
-          {compat && compat.systemSizeDifferences.length > 0 && effectiveMode === 'merge' && <div className="info">{t('transfer.systemSize')}</div>}
-          {plan?.accountChange && kind === 'whole' && <div className="info">{t('transfer.account', { to: plan.accountChange[1] })}</div>}
-          {plan?.targetOpenAndDirty && <div className="warn" style={{ margin: 0 }}>{t('transfer.dirtyTarget')}</div>}
-        </div>
-
-        <div className="go">
-          <button className="btn ember" disabled={!ready} onClick={kind === 'whole' ? runWhole : runSingle}>
-            {kind === 'whole' ? t('transfer.runWhole', { file: targetName }) : t('transfer.run')}
-          </button>
-          {result && (
-            <span className="note" style={{ margin: 0 }}>
-              {t('transfer.done', { path: result.path })}
-              {result.backup && (
-                <>
-                  <br />
-                  {t('transfer.backup', { path: result.backup })}
-                </>
-              )}
-            </span>
+          <p className="note">{t('transfer.accountWhy')}</p>
+          {editingAccount ? (
+            <div className="account-edit">
+              <input
+                className="field text"
+                inputMode="numeric"
+                placeholder="7656119…"
+                value={account}
+                onChange={(e) => setAccount(e.target.value.replace(/\D/g, '').slice(0, 17))}
+              />
+              {accounts?.local.map((a) => (
+                <button key={a.id} className="btn quiet small" title={a.folder} onClick={() => setAccount(a.id)}>
+                  {a.id}
+                </button>
+              ))}
+              <button className="btn quiet small" onClick={() => (setEditingAccount(false), setAccount(''))}>
+                {t('transfer.accountUseFolder')}
+              </button>
+            </div>
+          ) : (
+            <button className="btn small" onClick={() => (setEditingAccount(true), setAccount(accounts?.result ?? ''))}>
+              {t('transfer.accountEdit')}
+            </button>
           )}
         </div>
 
-        <p className="note" style={{ marginTop: 22, maxWidth: '72ch' }}>
-          {t('transfer.tip')}
-        </p>
+        <h3 className="step">{t('transfer.stepWhatHappens')}</h3>
+        {kind === 'single' && !singleReady ? (
+          <p className="note">{t('transfer.pickBoth')}</p>
+        ) : blocked ? (
+          <div className="warn" style={{ margin: 0 }}>
+            {errorText(lang, blocked)}
+          </div>
+        ) : plan ? (
+          <ChangeList
+            changes={plan.changes}
+            extra={[
+              t('transfer.sourceUntouched', { file: fileOf(doc.path) }),
+              ...(plan.targetExists ? [t('transfer.backupFirst', { file: fileOf(targetPath) })] : [])
+            ]}
+          />
+        ) : null}
+        {plan?.compatibility && plan.compatibility.problems.length > 0 && (
+          <div className="warn" style={{ margin: '10px 0 0' }}>
+            {t('transfer.incompatible')} {plan.compatibility.problems.join(' ')}
+          </div>
+        )}
+
+        <div className="go">
+          <button className="btn ember" disabled={!ready} onClick={run}>
+            {kind === 'whole' ? t('transfer.runWhole', { file: fileOf(targetPath) }) : t('transfer.run')}
+          </button>
+          {store.gameRunning && <span className="note" style={{ margin: 0 }}>{t('footer.gameRunning')}</span>}
+        </div>
       </div>
     </div>
   );
@@ -294,7 +325,7 @@ function MiniSlots({
               <span>Lv {s.level}</span>
             </>
           ) : (
-            <span style={{ fontStyle: 'normal' }}>{emptyText}</span>
+            <span className="dim">{emptyText}</span>
           )}
         </div>
       ))}
