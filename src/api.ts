@@ -399,3 +399,37 @@ export const rawApi = {
   /** `index` null searches every block. */
   find: (id: string, index: number | null, pattern: number[]) => invoke<RawMatches>('raw_find', { id, index, pattern })
 };
+
+/** Where in a save's JSON document something is. */
+export interface DocPlace {
+  /** e.g. `characters[slot 2].inventory[record 7724].quantity` */
+  path: string;
+  slot: number | null;
+  record: number | null;
+  field: string;
+}
+
+export interface DocChange extends DocPlace {
+  from: string;
+  to: string;
+  /** False for fields the document only shows; those are not written. */
+  applies: boolean;
+}
+
+export interface DocProblem extends DocPlace {
+  message: string;
+}
+
+export interface DocPreview {
+  syntax: { line: number; column: number; message: string } | null;
+  problems: DocProblem[];
+  changes: DocChange[];
+}
+
+export const documentApi = {
+  exportText: (id: string) => invoke<string>('document_export', { id }),
+  preview: (id: string, text: string) => invoke<DocPreview>('document_preview', { id, text }),
+  apply: (id: string, text: string) => invoke<DocChange[]>('document_apply', { id, text }),
+  writeFile: (path: string, text: string) => invoke<void>('document_write_file', { path, text }),
+  readFile: (path: string) => invoke<string>('document_read_file', { path })
+};

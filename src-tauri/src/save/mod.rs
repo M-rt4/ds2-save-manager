@@ -10,6 +10,7 @@ pub mod chunks;
 pub mod conversion;
 mod crypto;
 pub mod disk;
+pub mod document;
 pub mod edition;
 pub mod error;
 pub mod file;
@@ -25,6 +26,8 @@ pub mod transfer;
 
 #[cfg(test)]
 mod conversion_tests;
+#[cfg(test)]
+mod document_tests;
 #[cfg(test)]
 mod testdata;
 #[cfg(test)]
