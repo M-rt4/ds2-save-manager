@@ -22,7 +22,9 @@ export function Footer() {
       <div className="footer-status">
         <span className={`state ${state}`}>
           {doc && <span className="dot" />}
-          {text}
+          <span className="state-text" title={text}>
+            {text}
+          </span>
         </span>
         {/* Why Save stays off, under the state like the running game's reason. */}
         {doc?.readOnly && (

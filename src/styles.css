@@ -95,6 +95,8 @@ button {
 .app {
   display: grid;
   grid-template-rows: 40px minmax(0, 1fr) 50px;
+  /* One column exactly as wide as the window: nothing in it can widen the page. */
+  grid-template-columns: minmax(0, 1fr);
   height: 100%;
 }
 
@@ -809,6 +811,34 @@ kbd {
 .footer .spacer {
   flex: 1;
 }
+/* The key guide and the buttons keep their size; the state (long while the game runs) and the
+   backup note give way, the state on two lines with all of it on hover (one line when the
+   read-only note of a development build sits under it). */
+.footer .footer-status,
+.footer .state {
+  min-width: 0;
+}
+.footer .state-text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  line-height: 1.2;
+  white-space: normal;
+}
+.footer .footer-status:has(.guard-note) .state-text {
+  -webkit-line-clamp: 1;
+}
+.footer .note {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.footer .pad-hints,
+.footer .btn {
+  flex-shrink: 0;
+}
 
 /* ---------- Transfer ---------- */
 
@@ -1370,12 +1400,19 @@ input[type='checkbox'] {
 }
 .add-detail .add-opts {
   flex-direction: column;
+  flex-wrap: nowrap;
   align-items: stretch;
   width: 100%;
   padding: 10px 0 6px;
 }
 .add-detail .add-opts label {
   justify-content: space-between;
+}
+/* Beside the pane's scrollbar the column narrows: the field gives way, not its label (in one
+   column, without wrapping, so a line is never wider than the pane). */
+.add-detail .add-opts .field {
+  flex-shrink: 1;
+  min-width: 0;
 }
 .add-detail .btn.ember {
   margin-top: 4px;
@@ -1508,9 +1545,11 @@ select.field option:checked {
 
 /* ---------- Games rail: installs and where each release saves ---------- */
 
-/* Wider than the old saves list, so a file name, its age and an install path fit. */
+/* Wider than the old saves list, so a file name, its age and an install path fit. Both lists
+   give up width as the window narrows (280 and 296 px at the Steam Deck's 1280), so the view on
+   the right keeps about 510 px at the 1040 px minimum. */
 .main {
-  grid-template-columns: 280px 296px minmax(0, 1fr);
+  grid-template-columns: clamp(216px, 21.875vw, 280px) clamp(224px, 23.125vw, 296px) minmax(0, 1fr);
 }
 .place {
   font-size: 13.5px;
@@ -2907,4 +2946,97 @@ body[data-pad] * {
   padding-left: 17px;
   color: #e8a46a;
   font-size: 12px;
+}
+
+/* ---------- Narrow windows ----------
+   Below about 1200 px the view on the right drops under 600 px (512 at the 1040 px minimum).
+   Its views tighten up there rather than spill past the panel's edge. */
+
+.view-panel {
+  container: view / inline-size;
+}
+/* All six tabs fit down to the minimum width; should they ever not, the strip scrolls. */
+.tabs {
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+@container view (max-width: 600px) {
+  .tabs {
+    gap: 0;
+    padding: 10px 8px 0;
+  }
+  .tab {
+    padding: 6px 10px 9px;
+    font-size: 16px;
+  }
+
+  .inv {
+    grid-template-columns: 172px minmax(0, 1fr);
+  }
+  .inv-tools {
+    flex-wrap: wrap;
+  }
+  /* Long names wrap, so a +10 at their end stays in sight. */
+  .item .nm {
+    white-space: normal;
+  }
+
+  /* Adding an item: the categories shrink to their icons (each names itself on hover) so the
+     catalog keeps room for whole names. */
+  .add-view .add-grid {
+    grid-template-columns: 52px minmax(0, 1fr) 228px;
+  }
+  .add-view .inv-cats .row {
+    justify-content: center;
+    padding: 8px 0;
+  }
+  .add-view .inv-cats .cat-name {
+    display: none;
+  }
+  .add-view .inv-tools .field {
+    flex: 1 1 200px;
+  }
+  .add-view .inv-tools .counts {
+    flex-basis: 100%;
+    text-align: left;
+  }
+  .add-detail {
+    padding: 14px 12px 18px;
+  }
+
+  .journey {
+    grid-template-columns: minmax(0, 1fr) 72px minmax(0, 1fr);
+  }
+  .journey .side {
+    padding: 14px 12px;
+  }
+
+  /* The byte grid needs 16 columns whole; the blocks list gives up some width for it. */
+  .raw {
+    grid-template-columns: 176px minmax(0, 1fr);
+  }
+  .hx-row {
+    padding: 0 8px;
+  }
+  .hx-off {
+    margin-right: 8px;
+  }
+  .hx-bytes .b {
+    width: 2.25ch;
+  }
+}
+
+/* The footer is as wide as the window: below 1200 px its gaps tighten, and the pad guide drops
+   Save, which the Save button shows with its own glyph. */
+@media (max-width: 1199px) {
+  .footer {
+    gap: 12px;
+  }
+  .pad-hints {
+    gap: 10px;
+  }
+  .pad-hint[data-hint='pad.save'] {
+    display: none;
+  }
 }
