@@ -870,7 +870,7 @@ dependencies = [
 
 [[package]]
 name = "ds2-save-manager"
-version = "0.7.3"
+version = "0.7.4"
 dependencies = [
  "aes",
  "cbc",

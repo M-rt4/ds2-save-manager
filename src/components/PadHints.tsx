@@ -119,7 +119,7 @@ export function PadHints() {
   return (
     <span className="pad-hints">
       {HINTS.map((h) => (
-        <Hint key={h.key} label={t(h.key)}>
+        <Hint key={h.key} name={h.key} label={t(h.key)}>
           {h.buttons.map((b) => (
             <Glyph key={b} button={b} family={family} />
           ))}
@@ -129,9 +129,9 @@ export function PadHints() {
   );
 }
 
-function Hint({ label, children }: { label: string; children: ReactNode }) {
+function Hint({ name, label, children }: { name: Key; label: string; children: ReactNode }) {
   return (
-    <span className="pad-hint">
+    <span className="pad-hint" data-hint={name}>
       {children}
       {label}
     </span>

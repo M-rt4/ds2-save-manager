@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { useStore, type Tab } from '../store';
 import { useT, type Key } from '../i18n';
 import { CLASSES, COVENANTS, journeyLabel } from '../game';
@@ -26,13 +27,19 @@ export function Detail() {
   const setTab = useStore((s) => s.setTab);
   const character = useStore((s) => s.character);
   const draft = useStore((s) => s.draft);
+  const strip = useRef<HTMLElement>(null);
+
+  // Should the strip ever scroll, the open tab stays in sight (LB / RB included).
+  useEffect(() => {
+    strip.current?.querySelector('[aria-selected=true]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  }, [tab]);
 
   const needsCharacter = tab === 'status' || tab === 'inventory';
 
   return (
-    <section className="panel">
+    <section className="panel view-panel">
       <PanelChip index={2} label={t(TABS.find((x) => x.id === tab)!.key)} />
-      <nav className="tabs" role="tablist">
+      <nav className="tabs" role="tablist" ref={strip}>
         {TABS.map((x) => (
           <button key={x.id} className="tab" role="tab" aria-selected={tab === x.id} onClick={() => setTab(x.id)}>
             {t(x.key)}

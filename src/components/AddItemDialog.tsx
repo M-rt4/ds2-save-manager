@@ -79,9 +79,9 @@ export function AddItemView({ onClose }: { onClose: () => void }) {
       <div className="add-grid">
         <div className="list inv-cats">
           {ADDABLE.map((c) => (
-            <button key={c} className="row" aria-selected={!q && cat === c} onClick={() => (setCat(c), setQuery(''))}>
+            <button key={c} className="row" title={t(`cat.${c}` as Key)} aria-selected={!q && cat === c} onClick={() => (setCat(c), setQuery(''))}>
               <CategoryIcon category={c} size={16} />
-              {t(`cat.${c}` as Key)}
+              <span className="cat-name">{t(`cat.${c}` as Key)}</span>
             </button>
           ))}
         </div>
