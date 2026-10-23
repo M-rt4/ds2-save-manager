@@ -24,7 +24,7 @@ Güvenlik: oyun açıkken yazma kapalıdır; dosya açıldıktan sonra oyun tara
 
 ## Oyun kolu
 
-Uygulamanın tamamı yalnızca kolla da kullanılabilir (Xbox, PlayStation ve Steam Deck kolları; Windows'ta Windows.Gaming.Input, Linux ve Steam Deck'te evdev). Ayrı bir sürüm ya da ayar yoktur; uygulama **son kullanılan giriş cihazını** izler:
+Uygulamanın tamamı yalnızca kolla da kullanılabilir (Windows'ta Xbox uyumlu, XInput kollar: Xbox kolları ve XInput modundaki 8BitDo gibi kollar; PlayStation kolları Windows'ta Steam ya da DS4Windows ile Xbox kolu olarak tanıtılmalı. Linux ve Steam Deck'te evdev ile Xbox, PlayStation ve Steam Deck kolları). Ayrı bir sürüm ya da ayar yoktur; uygulama **son kullanılan giriş cihazını** izler:
 
 - Kolun herhangi bir tuşuna basmak ya da bir çubuğu ölü bölgenin ötesine itmek **kol kipine** geçirir: alt çubukta takılı kolun kendi tuş simgeleri (Xbox, PlayStation ya da Steam Deck), menünün parıltısıyla bir imleç; fare imleci gizlenir. Steam Deck çubuğunun hafif kayması kipi değiştirmez.
 - Fareyi birkaç pikselden fazla oynatmak, tıklamak, tekerlek ya da bir tuşa basmak **klavye/fare kipine** döndürür: `Ctrl S` gibi klavye ipuçları, yerel dosya pencereleri.
