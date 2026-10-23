@@ -286,7 +286,7 @@ fn conform_gives_a_save_the_targets_system_data() {
     bnd[0x18..0x20].copy_from_slice(b"02000100");
     let mut reg = dummy_regulation(bnd);
     reg.set_stamp(0x65);
-    let fmt = transfer::TargetFormat { edition: Edition::Scholar, regulation: reg, capacity: 8192, title_version: 0x6E };
+    let fmt = transfer::TargetFormat { edition: Edition::Scholar, regulation: reg, capacity: 8192, title_version: 0x6E, entry: None };
     let mut out = transfer::convert(&src, Edition::Scholar);
     transfer::conform(&mut out, &fmt).unwrap();
     let reread = SaveFile::parse(out.encode()).unwrap();

@@ -151,6 +151,9 @@ pub struct TargetFormat {
     pub regulation: Regulation,
     pub capacity: usize,
     pub title_version: u32,
+    /// Entry 21 exactly as the game wrote it, when the format comes from one of its saves:
+    /// copied as is rather than compressed again, so the bytes are the game's own.
+    pub entry: Option<Vec<u8>>,
 }
 
 /// Entry 21 capacity and entry 22 title-list version each release writes.
@@ -171,20 +174,24 @@ impl TargetFormat {
             title_version: chunks::find(save.block(SUMMARY_ENTRY), header::TITLE_CHUNK)
                 .map(|c| c.version)
                 .unwrap_or(edition_layout(save.source_edition).1),
+            entry: Some(save.block(regulation::ENTRY).to_vec()),
         })
     }
 
     /// The format of an installed game, for when it has written no save yet.
     pub fn from_install(edition: Edition, game_dir: &std::path::Path) -> Result<Self> {
         let (capacity, title_version) = edition_layout(edition);
-        Ok(Self { edition, regulation: Regulation::from_install(game_dir)?, capacity, title_version })
+        Ok(Self { edition, regulation: Regulation::from_install(game_dir)?, capacity, title_version, entry: None })
     }
 }
 
 /// Makes `save` a save of `fmt`'s release: its key, its regulation copy and stamp, and its
 /// entry-22 title-list version. Character and world data are identical in both releases.
 pub fn conform(save: &mut SaveFile, fmt: &TargetFormat) -> Result<()> {
-    let entry = fmt.regulation.to_entry(fmt.capacity)?;
+    let entry = match &fmt.entry {
+        Some(e) if e.len() == fmt.capacity => e.clone(),
+        _ => fmt.regulation.to_entry(fmt.capacity)?,
+    };
     if regulation::ENTRY >= save.block_count() || SUMMARY_ENTRY >= save.block_count() {
         return Err(SaveError::format("The save has no regulation or summary entry."));
     }

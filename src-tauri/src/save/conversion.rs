@@ -142,6 +142,11 @@ pub fn check_same_file(source: &SaveFile, target: &Target) -> Result<()> {
     if target.same_file && target.edition != source.source_edition {
         return Err(SaveError::new("sameFile", "The target is the source file itself."));
     }
+    // A file named for one release but locked with the other's key opens in neither game.
+    let named = target.path.file_name().and_then(|n| n.to_str()).and_then(Edition::from_file_name);
+    if named.is_some_and(|n| n != target.edition) {
+        return Err(SaveError::new("nameEdition", "That file name belongs to the other release; neither game would load it."));
+    }
     Ok(())
 }
 

@@ -232,6 +232,11 @@ export function TransferTab({ doc }: { doc: SaveView }) {
               </div>
             </div>
           )}
+          {accounts?.origin === 'manual' && accounts.targetFolder && accounts.result !== accounts.targetFolder && (
+            <div className="warn" style={{ margin: '10px 0 0' }}>
+              {t('transfer.accountMismatch', { folder: accounts.targetFolder })}
+            </div>
+          )}
           <p className="note">{t('transfer.accountWhy')}</p>
           {editingAccount ? (
             <div className="account-edit">

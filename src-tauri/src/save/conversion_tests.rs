@@ -40,7 +40,7 @@ fn regulation(version: &str, stamp: u8, body: &[u8]) -> Regulation {
 fn format(edition: Edition) -> TargetFormat {
     let (version, stamp) = if edition == Edition::Scholar { SCHOLAR_REG } else { ORIGINAL_REG };
     let (capacity, title_version) = transfer::edition_layout(edition);
-    TargetFormat { edition, regulation: regulation(version, stamp, &[7; 0x200]), capacity, title_version }
+    TargetFormat { edition, regulation: regulation(version, stamp, &[7; 0x200]), capacity, title_version, entry: None }
 }
 
 /// A save as the game of `fmt.edition` writes it, from decrypted blocks.
@@ -391,4 +391,32 @@ fn build_real_files() {
         assert_eq!(s.block(character_entry(slot)), src.block(character_entry(slot)), "slot {slot} carried over unchanged");
     }
     std::fs::write(var("DS2_BUILD_OUT"), bytes).unwrap();
+}
+
+#[test]
+fn refuses_a_file_named_for_the_other_release() {
+    let source = game_save(Edition::Original, &[(0, "Nele", 37)]);
+    let o = || Opts { install: Some(format(Edition::Scholar)), ..Default::default() };
+    // A Scholar save written under the original release's file name opens in neither game.
+    let wrong = in_folder(STEAM, Edition::Original);
+    let err = convert(&source, Edition::Scholar, &wrong, None, o()).err().expect("refused");
+    assert_eq!(err.code, "nameEdition");
+    // Any other name is the user's choice.
+    let custom = Path::new("X:/elsewhere/backup.sl2");
+    assert!(convert(&source, Edition::Scholar, custom, None, o()).is_ok());
+}
+
+#[test]
+fn copies_the_games_own_regulation_entry_when_it_has_one() {
+    let base = game_save(Edition::Scholar, &[(3, "Lucatiel", 30)]);
+    let mut fmt = TargetFormat::from_save(&base).unwrap();
+    // Mark the game's entry so a re-compressed one can't pass for it.
+    let mut entry = fmt.entry.clone().unwrap();
+    let last = entry.len() - 1;
+    entry[last] = 0xA5;
+    fmt.entry = Some(entry.clone());
+    let source = game_save(Edition::Original, &[(0, "Nele", 37)]);
+    let path = outside(Edition::Scholar);
+    let b = convert(&source, Edition::Scholar, &path, None, Opts { other: Some(fmt), ..Default::default() }).unwrap();
+    assert_eq!(written(&b, Edition::Scholar).block(regulation::ENTRY), &entry[..]);
 }
