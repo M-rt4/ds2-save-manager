@@ -8,6 +8,7 @@ import { FileTab } from './FileTab';
 import { BackupsTab } from './BackupsTab';
 import { RawTab } from './RawTab';
 import { ErrorBoundary } from './ErrorBoundary';
+import { PanelChip } from './PadHints';
 
 const TABS: { id: Tab; key: Key }[] = [
   { id: 'status', key: 'tab.status' },
@@ -30,6 +31,7 @@ export function Detail() {
 
   return (
     <section className="panel">
+      <PanelChip index={2} label={t(TABS.find((x) => x.id === tab)!.key)} />
       <nav className="tabs" role="tablist">
         {TABS.map((x) => (
           <button key={x.id} className="tab" role="tab" aria-selected={tab === x.id} onClick={() => setTab(x.id)}>

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { usePadHints, type PadButton, type PadFamily } from '../pad';
+import { usePad, usePadHints, type PadButton, type PadFamily } from '../pad';
 import { useT, type Key } from '../i18n';
 
 // Button glyphs drawn for the connected pad: Xbox letters, PlayStation shapes, or the Steam
@@ -91,6 +91,25 @@ const HINTS: { buttons: PadButton[]; key: Key }[] = [
   { buttons: ['start'], key: 'pad.save' },
   { buttons: ['select'], key: 'pad.settings' }
 ];
+
+/**
+ * On the main panel holding the pad cursor, set in its lit frame: LT and RT lead to the
+ * panels on either side (they wrap around), drawn with the connected pad's own glyphs.
+ */
+export function PanelChip({ index, label }: { index: number; label: string }) {
+  const family = usePadHints();
+  const here = usePad((s) => s.panel === index);
+  if (!family || !here) return null;
+  return (
+    <div className="panel-chip" aria-hidden>
+      <Glyph button="lt" family={family} />
+      <span className="arrow">◂</span>
+      {label}
+      <span className="arrow">▸</span>
+      <Glyph button="rt" family={family} />
+    </div>
+  );
+}
 
 /** The key guide along the bottom, as in the game, while the app is in pad mode. */
 export function PadHints() {
