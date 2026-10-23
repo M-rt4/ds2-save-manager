@@ -211,7 +211,6 @@ function settle() {
   window.setTimeout(check, 300);
 }
 
-/** The best target in a direction: nearest along it, little sideways drift, same panel first. */
 /** The nearest ancestor that scrolls vertically: a list, or a view's body. */
 function scrollBox(el: Element): Element | null {
   for (let p = el.parentElement; p; p = p.parentElement) {
@@ -228,14 +227,29 @@ function scrolledAway(el: Element, box: Element | null): boolean {
   return r.bottom <= b.top + 1 || r.top >= b.bottom - 1;
 }
 
+/** The best target in a direction: nearest along it, little sideways drift, same panel first. */
 function nearest(from: HTMLElement, dir: Dir): HTMLElement | null {
   const a = from.getBoundingClientRect();
   const home = panelOf(from);
   const fromBox = scrollBox(from);
+  const all = targets();
+  // Up from a row's own button (a backup's Restore) goes back to that row, measured to its top.
+  let row: Element | null = null;
+  for (let p = from.parentElement; dir === 'up' && p && !row; p = p.parentElement) {
+    if (all.includes(p as HTMLElement)) row = p;
+  }
   let best: HTMLElement | null = null;
   let bestScore = Infinity;
-  for (const el of targets()) {
-    // A row's own buttons (a backup's Restore) are reachable from it; its ancestors are not.
+  for (const el of all) {
+    if (el === row) {
+      const along = a.top - el.getBoundingClientRect().top;
+      if (along > 0 && along < bestScore) {
+        bestScore = along;
+        best = el;
+      }
+      continue;
+    }
+    // A row's own buttons are reachable from it; its other ancestors are not.
     if (el === from || el.contains(from)) continue;
     // Within its own box the cursor scrolls on to hidden controls; into another box it only
     // goes to what shows, or content scrolled up under a view's tabs would sit "above" them.

@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
-import { draftEdit, useStore } from './store';
+import { getCurrentWindow } from '@tauri-apps/api/window';
+import { hasChanges, useStore } from './store';
 import { TitleBar } from './components/TitleBar';
 import { SaveRail } from './components/SaveRail';
 import { SlotList } from './components/SlotList';
@@ -25,12 +26,24 @@ export function App() {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
         e.preventDefault();
         const s = useStore.getState();
-        const pending = s.doc?.dirty || (s.character && s.draft && draftEdit(s.character, s.draft));
-        if (pending && !s.gameRunning && !s.busy) void s.saveChanges();
+        if (hasChanges(s) && !s.gameRunning && !s.busy) void s.saveChanges();
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  // However the window is closed (the title bar's X, Alt+F4, the taskbar, Settings → Quit),
+  // unsaved changes are asked about first; with none it closes at once.
+  useEffect(() => {
+    const win = getCurrentWindow();
+    const unlisten = win.onCloseRequested((e) => {
+      const s = useStore.getState();
+      if (!hasChanges(s)) return;
+      e.preventDefault();
+      s.ask(s.t('window.quitUnsaved'), () => void win.destroy());
+    });
+    return () => void unlisten.then((stop) => stop());
   }, []);
 
   return (

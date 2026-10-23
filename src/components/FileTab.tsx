@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { revealItemInDir } from '@tauri-apps/plugin-opener';
-import { api, type ConversionPlan, type ConversionRequest, type SaveView } from '../api';
+import { api, type ConversionPlan, type ConversionReport, type ConversionRequest, type SaveView } from '../api';
 import { gameDirFor, useStore } from '../store';
 import { errorText, useT } from '../i18n';
 import { editionName } from '../game';
@@ -133,15 +133,23 @@ function FitToGame({ doc }: { doc: SaveView }) {
   const run = () =>
     store.ask(t('confirm.transfer', { file: doc.fileName, folder: doc.folder }), async () => {
       setBusy(true);
+      let report: ConversionReport;
       try {
-        const report = await api.runConversion(request);
+        report = await api.runConversion(request);
+      } catch (e) {
+        store.fail(e);
+        setBusy(false);
+        return;
+      }
+      // The file is written: say so first, so a failed reload below never hides that it worked.
+      if (useStore.getState().settings.showTransferReport) store.showReport({ path: report.path, changes: report.changes });
+      else store.toast(t('transfer.done', { path: report.path }));
+      try {
         store.setDoc(await api.getSave(doc.id));
         if (store.slot !== null) await store.selectSlot(store.slot);
         await store.refreshSaves();
         // Check the written file again: it now reads "already matches" instead of the old plan.
         setPlan(await api.planConversion(request));
-        if (useStore.getState().settings.showTransferReport) store.showReport({ path: report.path, changes: report.changes });
-        else store.toast(t('transfer.done', { path: report.path }));
       } catch (e) {
         store.fail(e);
       } finally {
