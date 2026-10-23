@@ -102,6 +102,7 @@ fn main() {
             commands_about::system_info,
             commands_about::dev_label,
             commands_about::test_saves_root,
+            commands_about::tour_suppressed,
             commands_raw::raw_read,
             commands_raw::raw_write,
             commands_raw::raw_find,

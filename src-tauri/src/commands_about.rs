@@ -71,6 +71,13 @@ pub fn dev_label() -> Option<String> {
 
 /// The scratch saves folder a test copy was pointed at (`DS2SM_SAVES_ROOT`), so the window can
 /// say plainly that the real saves are not the ones it lists and writes.
+/// Test copies driven by scripts start with `DS2SM_NO_TOUR`: the introductory tour would make the
+/// app inert under them. Release builds always show it on a first start.
+#[tauri::command]
+pub fn tour_suppressed() -> bool {
+    cfg!(debug_assertions) && std::env::var_os("DS2SM_NO_TOUR").is_some()
+}
+
 #[tauri::command]
 pub fn test_saves_root() -> Option<String> {
     std::env::var("DS2SM_SAVES_ROOT").ok().filter(|r| !r.is_empty())

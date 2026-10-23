@@ -1092,7 +1092,7 @@ kbd {
   place-items: center;
   background: rgba(0, 0, 0, 0.6);
 }
-body:has(.scrim) .titlebar .lang {
+body:has(.scrim:not(.tour)) .titlebar .lang {
   pointer-events: none;
   opacity: 0.4;
 }
@@ -3110,5 +3110,96 @@ body[data-pad] * {
 @keyframes boot-pulse {
   50% {
     opacity: 0.4;
+  }
+}
+
+/* ---------- Introductory tour ---------- */
+
+/* Over the window below the title bar, catching every click so the app beneath (inert while the
+   tour is open) keeps its look but takes no input; the title bar's window buttons and drag area
+   stay usable. The darkness is the lit hole's own shadow and covers the title bar as well. */
+.scrim.tour {
+  inset: 40px 0 0;
+  z-index: 80;
+  display: block;
+  background: transparent;
+}
+.tour-hole {
+  position: fixed;
+  border-radius: 3px;
+  box-shadow:
+    0 0 0 1px rgba(232, 144, 63, 0.9),
+    0 0 26px 3px rgba(232, 144, 63, 0.4),
+    0 0 0 200vmax rgba(3, 3, 5, 0.8);
+  pointer-events: none;
+}
+.tour-hole[data-empty] {
+  box-shadow: 0 0 0 200vmax rgba(3, 3, 5, 0.8);
+}
+.tour-card {
+  position: fixed;
+  width: min(380px, calc(100vw - 32px));
+  padding: 16px 20px 16px;
+}
+.tour-card h3 {
+  margin: 10px 0 6px;
+  font-family: var(--display);
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: #f1ebdb;
+}
+.tour-card p {
+  margin: 0 0 16px;
+  font-size: 16px;
+  line-height: 1.45;
+  color: var(--bone);
+}
+.tour-progress {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--ash);
+  font-size: 14px;
+}
+.tour-dots {
+  display: flex;
+  gap: 6px;
+}
+/* The menu cursor's diamond for each step: lit for this one, bone for those seen. */
+.tour-dots > span {
+  width: 6px;
+  height: 6px;
+  border: 1px solid var(--dim);
+  transform: rotate(45deg);
+}
+.tour-dots > span[data-done] {
+  background: var(--ash);
+  border-color: var(--ash);
+}
+.tour-dots > span[data-on] {
+  background: var(--ember);
+  border-color: var(--ember);
+  box-shadow: 0 0 8px var(--ember);
+}
+/* Next is first in the markup (the pad's cursor starts there) and drawn last. */
+.tour-actions {
+  display: flex;
+  flex-direction: row-reverse;
+  align-items: center;
+  gap: 6px;
+}
+.tour-actions .spacer {
+  flex: 1;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .tour-hole,
+  .tour-card {
+    transition:
+      left 0.28s ease,
+      top 0.28s ease,
+      width 0.28s ease,
+      height 0.28s ease;
   }
 }

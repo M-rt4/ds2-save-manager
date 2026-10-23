@@ -8,12 +8,14 @@ import { Detail } from './components/Detail';
 import { Footer } from './components/Footer';
 import { Overlays } from './components/Overlays';
 import { LoadingScreen } from './components/LoadingScreen';
+import { Tour } from './components/Tour';
 import { FileBrowser } from './components/FileBrowser';
 import { PadKeyboard } from './components/PadKeyboard';
 
 export function App() {
   const lang = useStore((s) => s.lang);
   const boot = useStore((s) => s.boot);
+  const tourOpen = useStore((s) => s.tourOpen);
 
   useEffect(() => {
     void useStore.getState().init();
@@ -69,6 +71,7 @@ export function App() {
       </main>
       <Footer />
       <Overlays />
+      {tourOpen && <Tour />}
       <FileBrowser />
       <PadKeyboard />
     </div>

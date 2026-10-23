@@ -84,6 +84,23 @@ export function SettingsView() {
           {tab === 'general' && (
             <div className="setting">
               <div>
+                <b>{t('tour.replay')}</b>
+                <span>{t('tour.replayHint')}</span>
+              </div>
+              <button
+                className="btn"
+                onClick={() => {
+                  useStore.getState().setSettingsOpen(false);
+                  useStore.setState({ tourOpen: true });
+                }}
+              >
+                {t('tour.replayButton')}
+              </button>
+            </div>
+          )}
+          {tab === 'general' && (
+            <div className="setting">
+              <div>
                 <b>{t('pad.detected')}</b>
                 <span>{padName ?? t('pad.none')}</span>
               </div>
