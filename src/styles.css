@@ -118,6 +118,14 @@ button {
   font-size: 15px;
   font-style: normal;
 }
+/* Version and author, always in view: quieter than the subtitle, never wrapped or cut. */
+.titlebar .byline {
+  color: var(--ash);
+  opacity: 0.75;
+  font-size: 13px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
 .titlebar .spacer {
   flex: 1;
 }
