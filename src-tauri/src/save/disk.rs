@@ -143,13 +143,26 @@ pub fn backup(path: &Path, reason: Reason) -> Result<Option<PathBuf>> {
 /// is refused, wherever the path came from (the list, a file picker, a typed path), even when
 /// `DS2SM_SAVES_ROOT` itself points there. Only the released app writes real saves.
 pub fn ensure_writable(path: &Path) -> Result<()> {
-    if cfg!(debug_assertions) && inside_any(path, &game_saves_roots(None)) {
+    if cfg!(debug_assertions) && inside_any(path, &guard_roots()) {
         return Err(SaveError::new(
             "devRealSave",
             "This is a development build. It never changes the game's real save folders; only the released app does.",
         ));
     }
     Ok(())
+}
+
+/// What development builds never write into. On Windows that is `%APPDATA%\DarkSoulsII`, made
+/// or not; on Linux the game's save folders that exist plus every place it would make one.
+fn guard_roots() -> Vec<PathBuf> {
+    #[allow(unused_mut)]
+    let mut roots = game_saves_roots(None);
+    #[cfg(not(windows))]
+    if let Some(home) = std::env::var_os("HOME").map(PathBuf::from) {
+        let steam = super::platform::linux_steam_dirs(&home);
+        roots.extend(super::platform::linux_guard_roots(&home, &steam));
+    }
+    roots
 }
 
 /// Whether `path` lies inside one of `roots`, with links and `..` resolved on both sides.
