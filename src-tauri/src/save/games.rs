@@ -2,8 +2,11 @@
 //! releases write to the same `%APPDATA%\DarkSoulsII\<account>` folders, each under its
 //! own file name, so one account folder can hold an original and a Scholar save.
 
+use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::Mutex;
+use std::time::SystemTime;
 
 use serde::{Deserialize, Serialize};
 
@@ -12,6 +15,7 @@ use super::disk;
 use super::edition::Edition;
 use super::error::{Result, SaveError};
 use super::file::{SaveFile, SLOT_COUNT};
+use super::regulation::{self, Regulation};
 
 const EXE: &str = "DarkSoulsII.exe";
 
@@ -49,8 +53,35 @@ pub struct Install {
 
 impl Install {
     fn new(path: String, exe: Option<String>, source: InstallSource) -> Self {
-        Self { path, exe, source, exe_version: None, regulation_version: None }
+        let (exe_version, regulation_version) = exe.as_deref().map(|e| versions(Path::new(e))).unwrap_or_default();
+        Self { path, exe, source, exe_version, regulation_version }
     }
+}
+
+type Versions = (Option<String>, Option<String>);
+type VersionCache = HashMap<PathBuf, ((Option<SystemTime>, Option<SystemTime>), Versions)>;
+
+/// Reading the versions scans a 30 MB executable and decrypts a 9 MB archive, so they are
+/// kept per executable until it or the regulation file next to it changes.
+static VERSIONS: Mutex<Option<VersionCache>> = Mutex::new(None);
+
+/// The executable's file version and the regulation version of the install around it.
+fn versions(exe: &Path) -> Versions {
+    let Some(dir) = exe.parent() else { return (None, None) };
+    let modified = |p: &Path| fs::metadata(p).and_then(|m| m.modified()).ok();
+    let stamp = (modified(exe), modified(&dir.join("enc_regulation.bnd.dcx")));
+    let mut cache = VERSIONS.lock().unwrap();
+    let cache = cache.get_or_insert_with(HashMap::new);
+    if let Some((seen, v)) = cache.get(exe) {
+        if *seen == stamp {
+            return v.clone();
+        }
+    }
+    let exe_version = regulation::exe_version(exe).ok().map(|(a, b, c, d)| format!("{a}.{b}.{c}.{d}"));
+    let regulation_version = Regulation::from_install(dir).ok().map(|r| r.info().version);
+    let v = (exe_version, regulation_version);
+    cache.insert(exe.to_path_buf(), (stamp, v.clone()));
+    v
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -207,9 +238,22 @@ pub fn saves_in(root: &Path, edition: Edition) -> Vec<GameSave> {
     saves
 }
 
-fn existing_save(path: &Path, folder: &str, account: Option<u64>) -> Option<GameSave> {
-    let found = disk::found_save(path)?;
-    let (slots, error) = match fs::read(path).map_err(SaveError::from).and_then(SaveFile::parse) {
+type Characters = (Vec<SlotBrief>, Option<SaveError>);
+type CharacterCache = HashMap<PathBuf, ((u64, u64), Characters)>;
+
+/// Decrypting a save takes a while and the games are listed again after every write, so
+/// each file's characters are kept until its size or time changes.
+static CHARACTERS: Mutex<Option<CharacterCache>> = Mutex::new(None);
+
+fn characters(path: &Path, size: u64, modified: u64) -> Characters {
+    let mut cache = CHARACTERS.lock().unwrap();
+    let cache = cache.get_or_insert_with(HashMap::new);
+    if let Some((seen, c)) = cache.get(path) {
+        if *seen == (size, modified) {
+            return c.clone();
+        }
+    }
+    let c = match fs::read(path).map_err(SaveError::from).and_then(SaveFile::parse) {
         Ok(save) => (
             (0..SLOT_COUNT)
                 .map(|i| character::summary(&save, i))
@@ -220,6 +264,13 @@ fn existing_save(path: &Path, folder: &str, account: Option<u64>) -> Option<Game
         ),
         Err(e) => (Vec::new(), Some(e)),
     };
+    cache.insert(path.to_path_buf(), ((size, modified), c.clone()));
+    c
+}
+
+fn existing_save(path: &Path, folder: &str, account: Option<u64>) -> Option<GameSave> {
+    let found = disk::found_save(path)?;
+    let (slots, error) = characters(path, found.size, found.modified);
     Some(GameSave {
         path: found.path,
         file_name: found.file_name,
@@ -467,13 +518,16 @@ mod tests {
         dir
     }
 
-    /// A minimal PE header with the given machine type.
+    /// A minimal PE header with the given machine type, and a VS_FIXEDFILEINFO of 1.0.1.0.
     fn exe_for(machine: u16) -> Vec<u8> {
         let mut b = vec![0u8; 0x200];
         b[..2].copy_from_slice(b"MZ");
         b[0x3C..0x40].copy_from_slice(&0x80u32.to_le_bytes());
         b[0x80..0x84].copy_from_slice(b"PE\0\0");
         b[0x84..0x86].copy_from_slice(&machine.to_le_bytes());
+        b[0x100..0x104].copy_from_slice(&0xFEEF_04BDu32.to_le_bytes());
+        b[0x108..0x10C].copy_from_slice(&0x0001_0000u32.to_le_bytes());
+        b[0x10C..0x110].copy_from_slice(&0x0001_0000u32.to_le_bytes());
         b
     }
 
@@ -517,6 +571,9 @@ mod tests {
         fs::write(repack.join(EXE), exe_for(0x8664)).unwrap();
         fs::write(repack.join("steam_appid.txt"), "335300\r\n").unwrap();
         assert_eq!(classify(&repack).map(|(_, e)| e), Some(Edition::Scholar));
+        let install = Install::new(display(&repack), Some(display(&repack.join(EXE))), InstallSource::Manual);
+        assert_eq!(install.exe_version.as_deref(), Some("1.0.1.0"));
+        assert_eq!(install.regulation_version, None, "no enc_regulation.bnd.dcx here");
 
         let steam = root.join("Dark Souls II");
         fs::create_dir_all(steam.join("Game")).unwrap();

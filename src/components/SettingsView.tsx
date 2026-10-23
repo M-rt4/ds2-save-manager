@@ -4,12 +4,14 @@ import type { Edition } from '../api';
 import { useStore } from '../store';
 import { useT, type Key } from '../i18n';
 import { editionName } from '../game';
+import { AboutView } from './AboutView';
 
-type SettingsTab = 'general' | 'transfer' | 'games';
+type SettingsTab = 'general' | 'transfer' | 'games' | 'about';
 const TABS: { id: SettingsTab; key: Key }[] = [
   { id: 'general', key: 'settings.general' },
   { id: 'transfer', key: 'settings.transfer' },
-  { id: 'games', key: 'settings.games' }
+  { id: 'games', key: 'settings.games' },
+  { id: 'about', key: 'about.title' }
 ];
 
 /** The app's options, laid out like the game's own option menu: tabs over a list of rows. */
@@ -108,6 +110,7 @@ export function SettingsView() {
               ))}
             </>
           )}
+          {tab === 'about' && <AboutView />}
         </div>
         <div className="choices" style={{ display: 'flex', justifyContent: 'flex-end', padding: '12px 22px 20px' }}>
           <button className="btn" onClick={() => close(false)}>

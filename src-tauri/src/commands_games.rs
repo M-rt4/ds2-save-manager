@@ -23,20 +23,27 @@ fn manual(app: &AppHandle) -> Vec<ManualFolder> {
     settings_file(app).map(|f| games::manual_folders(&f)).unwrap_or_default()
 }
 
+/// Lists off the async runtime: the first look at an install reads its executable and
+/// regulation file.
+async fn list(app: &AppHandle) -> Vec<GameInfo> {
+    let manual = manual(app);
+    tauri::async_runtime::spawn_blocking(move || games::list(&manual)).await.unwrap_or_default()
+}
+
 #[tauri::command]
 pub async fn list_games(app: AppHandle) -> Vec<GameInfo> {
-    games::list(&manual(&app))
+    list(&app).await
 }
 
 /// Remembers a game folder (after checking it holds `DarkSoulsII.exe`) and lists again.
 #[tauri::command]
 pub async fn add_game_folder(app: AppHandle, path: String) -> CmdResult<Vec<GameInfo>> {
     games::add_folder(&settings_file(&app)?, Path::new(&path))?;
-    Ok(games::list(&manual(&app)))
+    Ok(list(&app).await)
 }
 
 #[tauri::command]
 pub async fn remove_game_folder(app: AppHandle, path: String) -> CmdResult<Vec<GameInfo>> {
     games::remove_folder(&settings_file(&app)?, &path)?;
-    Ok(games::list(&manual(&app)))
+    Ok(list(&app).await)
 }

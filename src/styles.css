@@ -1603,16 +1603,25 @@ button.place:hover {
   color: var(--ash);
 }
 
-/* ---------- About ---------- */
+/* ---------- About (a settings tab) ---------- */
 
-.dialog.about {
-  height: min(720px, calc(100vh - 80px));
+/* The About tab is longer than the dialog; the tab body scrolls under the tabs. */
+.settings-body {
+  overflow-y: auto;
+}
+.settings-body::-webkit-scrollbar {
+  width: 8px;
+}
+.settings-body::-webkit-scrollbar-thumb {
+  background: rgba(208, 199, 178, 0.18);
+  border-left: 3px solid transparent;
+  background-clip: padding-box;
 }
 .about-head {
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 18px 26px 0;
+  margin-bottom: 14px;
 }
 .about-mark {
   font-family: var(--display);
@@ -1632,9 +1641,6 @@ button.place:hover {
 .about-version {
   color: var(--ash);
   font-size: 15px;
-}
-.about-rule {
-  margin: 14px 20px 0;
 }
 .about-lead {
   margin: 0 0 14px;
@@ -1699,8 +1705,4 @@ button.place:hover {
 }
 .about .note {
   max-width: 72ch;
-}
-.about .choices {
-  padding: 10px 20px 14px;
-  border-top: 1px solid var(--line-faint);
 }

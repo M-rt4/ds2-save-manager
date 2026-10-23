@@ -1,5 +1,4 @@
 import { Fragment, useEffect, useState, version as reactVersion } from 'react';
-import { createPortal } from 'react-dom';
 import { getTauriVersion, getVersion } from '@tauri-apps/api/app';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { aboutApi, type GameInfo, type InstallSource } from '../api';
@@ -57,7 +56,8 @@ function Link({ url, children }: { url: string; children: string }) {
   );
 }
 
-export function AboutDialog({ onClose }: { onClose: () => void }) {
+/** The About tab of the settings: the app, its author and sources, and the games on this PC. */
+export function AboutView() {
   const t = useT();
   const games = useStore((s) => s.games);
   const gamesLoaded = useStore((s) => s.gamesLoaded);
@@ -80,78 +80,57 @@ export function AboutDialog({ onClose }: { onClose: () => void }) {
     if (!gamesLoaded) void useStore.getState().refreshGames();
   }, [gamesLoaded]);
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
-
   const system = [os, webview && `WebView2 ${webview}`].filter(Boolean).join(' · ');
 
-  // A portal keeps the dialog out of the title bar's drag region.
-  return createPortal(
-    <div className="scrim" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="panel dialog wide about" role="dialog" aria-label={t('about.title')}>
-        <div className="about-head">
-          <Bonfire size={44} />
-          <div>
-            <div className="about-mark">
-              DARK SOULS II <span>{t('app.subtitle')}</span>
-            </div>
-            <div className="about-version">{app ? t('about.version', { v: app.version }) : ' '}</div>
+  return (
+    <div className="about">
+      <div className="about-head">
+        <Bonfire size={44} />
+        <div>
+          <div className="about-mark">
+            DARK SOULS II <span>{t('app.subtitle')}</span>
           </div>
-        </div>
-        <hr className="rule about-rule" />
-
-        <div className="panel-body padded">
-          <p className="about-lead">{t('about.lead')}</p>
-          <div className="kv">
-            <div className="k">{t('about.author')}</div>
-            <div className="v">
-              Mert · <Link url={AUTHOR.url}>{AUTHOR.label}</Link>
-            </div>
-            <div className="k">{t('about.repo')}</div>
-            <div className="v">
-              <Link url={REPO.url}>{REPO.label}</Link> <span className="dim">({t('about.private')})</span>
-            </div>
-            <div className="k">{t('about.stack')}</div>
-            <div className="v">
-              Tauri {app?.tauri ?? '2'} · React {reactVersion} · Rust · TypeScript
-            </div>
-            <div className="k">{t('about.system')}</div>
-            <div className="v">{system || '—'}</div>
-          </div>
-
-          <h3 className="about-h">{t('about.games')}</h3>
-          {games.map((g) => (
-            <GameFacts key={g.edition} game={g} />
-          ))}
-
-          <h3 className="about-h">{t('about.credits')}</h3>
-          <ul className="credits">
-            {CREDITS.map((c) => (
-              <li key={c.name}>
-                <Link url={c.url}>{c.name}</Link>
-                {c.license && <span className="dim"> · {c.license}</span>}
-                <span className="what">{t(c.what)}</span>
-              </li>
-            ))}
-          </ul>
-          <p className="note">{t('about.assets')}</p>
-          <p className="note">{t('about.trademark')}</p>
-          <p className="note">© 2026 Mert</p>
-        </div>
-
-        <div className="choices">
-          <button className="row" aria-selected onClick={onClose}>
-            {t('about.close')}
-          </button>
+          <div className="about-version">{app ? t('about.version', { v: app.version }) : ' '}</div>
         </div>
       </div>
-    </div>,
-    document.body
+
+      <p className="about-lead">{t('about.lead')}</p>
+      <div className="kv">
+        <div className="k">{t('about.author')}</div>
+        <div className="v">
+          Mert · <Link url={AUTHOR.url}>{AUTHOR.label}</Link>
+        </div>
+        <div className="k">{t('about.repo')}</div>
+        <div className="v">
+          <Link url={REPO.url}>{REPO.label}</Link> <span className="dim">({t('about.private')})</span>
+        </div>
+        <div className="k">{t('about.stack')}</div>
+        <div className="v">
+          Tauri {app?.tauri ?? '2'} · React {reactVersion} · Rust · TypeScript
+        </div>
+        <div className="k">{t('about.system')}</div>
+        <div className="v">{system || '—'}</div>
+      </div>
+
+      <h3 className="about-h">{t('about.games')}</h3>
+      {games.map((g) => (
+        <GameFacts key={g.edition} game={g} />
+      ))}
+
+      <h3 className="about-h">{t('about.credits')}</h3>
+      <ul className="credits">
+        {CREDITS.map((c) => (
+          <li key={c.name}>
+            <Link url={c.url}>{c.name}</Link>
+            {c.license && <span className="dim"> · {c.license}</span>}
+            <span className="what">{t(c.what)}</span>
+          </li>
+        ))}
+      </ul>
+      <p className="note">{t('about.assets')}</p>
+      <p className="note">{t('about.trademark')}</p>
+      <p className="note">© 2026 Mert</p>
+    </div>
   );
 }
 

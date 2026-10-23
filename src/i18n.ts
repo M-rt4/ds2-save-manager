@@ -284,7 +284,6 @@ const en = {
   'games.noCharacters': 'No characters',
   'games.unreadable': 'Can\'t be read: {msg}',
 
-  'about.open': 'About',
   'about.title': 'About',
   'about.version': 'Version {v}',
   'about.lead': 'Opens and edits Dark Souls II saves, and carries them between the original release and Scholar of the First Sin.',
@@ -299,7 +298,7 @@ const en = {
   'about.notInstalled': 'Not found on this PC.',
   'about.exeVersion': 'Game version',
   'about.regulation': 'Regulation version',
-  'about.notRead': 'not read yet',
+  'about.notRead': 'could not be read',
   'about.saves': 'Save folder',
   'about.accounts': 'Accounts',
   'about.hasSave': '{file}, {n} characters',
@@ -311,8 +310,7 @@ const en = {
   'about.credit.bindertool': 'Decrypting the game\'s archives and regulation file.',
   'about.credit.paramdex': 'Definitions of the game\'s parameter tables.',
   'about.assets': 'The menu font and the item icons are made from Dark Souls II\'s own files; their designs belong to FromSoftware / Bandai Namco. EB Garamond and Cinzel (SIL Open Font License) are bundled as fallbacks.',
-  'about.trademark': 'Dark Souls is a trademark of Bandai Namco Entertainment / FromSoftware. This project is not affiliated with or endorsed by them.',
-  'about.close': 'Close'
+  'about.trademark': 'Dark Souls is a trademark of Bandai Namco Entertainment / FromSoftware. This project is not affiliated with or endorsed by them.'
 } as const;
 
 export type Key = keyof typeof en;
@@ -598,7 +596,6 @@ const tr: Record<Key, string> = {
   'games.noCharacters': 'Karakter yok',
   'games.unreadable': 'Okunamadı: {msg}',
 
-  'about.open': 'Hakkında',
   'about.title': 'Hakkında',
   'about.version': 'Sürüm {v}',
   'about.lead': 'Dark Souls II kayıtlarını açar, düzenler ve orijinal sürümle Scholar of the First Sin arasında taşır.',
@@ -613,7 +610,7 @@ const tr: Record<Key, string> = {
   'about.notInstalled': 'Bu bilgisayarda bulunamadı.',
   'about.exeVersion': 'Oyun sürümü',
   'about.regulation': 'Regulation sürümü',
-  'about.notRead': 'henüz okunmadı',
+  'about.notRead': 'okunamadı',
   'about.saves': 'Kayıt klasörü',
   'about.accounts': 'Hesaplar',
   'about.hasSave': '{file}, {n} karakter',
@@ -625,8 +622,7 @@ const tr: Record<Key, string> = {
   'about.credit.bindertool': 'Oyunun arşivlerini ve regulation dosyasını çözme.',
   'about.credit.paramdex': 'Oyunun parametre tablolarının tanımları.',
   'about.assets': 'Menü yazı tipi ve eşya ikonları Dark Souls II\'nin kendi dosyalarından üretildi; tasarımları FromSoftware / Bandai Namco\'ya aittir. Yedek olarak EB Garamond ve Cinzel (SIL Open Font License) paketlenir.',
-  'about.trademark': 'Dark Souls, Bandai Namco Entertainment / FromSoftware\'in ticari markasıdır. Bu proje onlarla bağlantılı değildir ve onlar tarafından onaylanmamıştır.',
-  'about.close': 'Kapat'
+  'about.trademark': 'Dark Souls, Bandai Namco Entertainment / FromSoftware\'in ticari markasıdır. Bu proje onlarla bağlantılı değildir ve onlar tarafından onaylanmamıştır.'
 };
 
 export type Lang = 'tr' | 'en';
