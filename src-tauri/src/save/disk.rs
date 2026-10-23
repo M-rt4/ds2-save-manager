@@ -15,13 +15,39 @@ use super::header::STEAM_ID_HIGH;
 
 pub const BACKUP_DIR: &str = "DS2 Save Manager Backups";
 
-/// `%APPDATA%\DarkSoulsII`, where both releases keep one folder per Steam account.
+/// The `DarkSoulsII` folders holding one folder per Steam account, for one release or (with
+/// `None`) both. Windows has a single one, `%APPDATA%\DarkSoulsII`, shared by both releases;
+/// Linux has one per Wine/Proton prefix that ran the game (see `platform`).
 /// `DS2SM_SAVES_ROOT` points test copies at a scratch tree instead of the real saves.
-pub fn saves_root() -> Option<PathBuf> {
+pub fn saves_roots(edition: Option<Edition>) -> Vec<PathBuf> {
     if let Some(root) = std::env::var_os("DS2SM_SAVES_ROOT") {
-        return Some(PathBuf::from(root));
+        return vec![PathBuf::from(root)];
     }
-    std::env::var_os("APPDATA").map(|a| PathBuf::from(a).join("DarkSoulsII"))
+    #[cfg(windows)]
+    {
+        let _ = edition;
+        std::env::var_os("APPDATA").map(|a| vec![PathBuf::from(a).join("DarkSoulsII")]).unwrap_or_default()
+    }
+    #[cfg(not(windows))]
+    {
+        let Some(home) = std::env::var_os("HOME").map(PathBuf::from) else { return Vec::new() };
+        let steam = super::platform::linux_steam_dirs(&home);
+        let editions = edition.map_or(Edition::ALL.to_vec(), |e| vec![e]);
+        let mut roots: Vec<PathBuf> = Vec::new();
+        for e in editions {
+            for r in super::platform::linux_save_roots(&home, &steam, e) {
+                if !roots.contains(&r) {
+                    roots.push(r);
+                }
+            }
+        }
+        roots
+    }
+}
+
+/// The first saves folder, for places that show a single one.
+pub fn saves_root() -> Option<PathBuf> {
+    saves_roots(None).into_iter().next()
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -60,11 +86,10 @@ pub fn found_save(path: &Path) -> Option<FoundSave> {
     })
 }
 
-/// Every `.sl2` in the account folders under `%APPDATA%\DarkSoulsII`, newest first.
+/// Every `.sl2` in the account folders of every saves folder, newest first.
 pub fn discover() -> Vec<FoundSave> {
-    let Some(root) = saves_root() else { return Vec::new() };
     let mut found = Vec::new();
-    for dir in fs::read_dir(&root).into_iter().flatten().flatten() {
+    for dir in saves_roots(None).iter().flat_map(|root| fs::read_dir(root).into_iter().flatten().flatten()) {
         if !dir.path().is_dir() {
             continue;
         }
@@ -132,7 +157,16 @@ pub fn game_running() -> bool {
             .map(|o| String::from_utf8_lossy(&o.stdout).to_ascii_lowercase().contains("darksoulsii.exe"))
             .unwrap_or(false)
     }
-    #[cfg(not(windows))]
+    #[cfg(target_os = "linux")]
+    {
+        fs::read_dir("/proc")
+            .into_iter()
+            .flatten()
+            .flatten()
+            .filter(|e| e.file_name().to_string_lossy().bytes().all(|b| b.is_ascii_digit()))
+            .any(|e| fs::read(e.path().join("cmdline")).is_ok_and(|c| super::platform::cmdline_is_game(&c)))
+    }
+    #[cfg(not(any(windows, target_os = "linux")))]
     {
         false
     }

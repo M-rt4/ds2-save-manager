@@ -5,18 +5,18 @@ use serde::Serialize;
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SystemInfo {
-    /// e.g. "Windows 11 Pro 26H2 (build 26300.9711)".
+    /// e.g. "Windows 11 Pro 26H2 (build 26300.9711)" or "SteamOS 3.7 (Steam Deck OLED)".
     os: Option<String>,
     arch: &'static str,
 }
 
 #[tauri::command]
 pub async fn system_info() -> SystemInfo {
-    SystemInfo { os: windows_version(), arch: std::env::consts::ARCH }
+    SystemInfo { os: os_version(), arch: std::env::consts::ARCH }
 }
 
 #[cfg(windows)]
-fn windows_version() -> Option<String> {
+fn os_version() -> Option<String> {
     use std::fmt::Write;
     use winreg::enums::HKEY_LOCAL_MACHINE;
     use winreg::RegKey;
@@ -38,7 +38,26 @@ fn windows_version() -> Option<String> {
     Some(product)
 }
 
+/// The distribution's own name from os-release, the kernel, and the device when it is a
+/// Steam Deck (Valve's boards are "Jupiter" for the LCD model and "Galileo" for the OLED).
 #[cfg(not(windows))]
-fn windows_version() -> Option<String> {
-    None
+fn os_version() -> Option<String> {
+    let release = std::fs::read_to_string("/etc/os-release").ok()?;
+    let field = |key: &str| {
+        release.lines().find_map(|l| l.strip_prefix(key)?.strip_prefix('=').map(|v| v.trim_matches('"').to_string()))
+    };
+    let mut name = field("PRETTY_NAME").or_else(|| field("NAME"))?;
+    let dmi = |f: &str| std::fs::read_to_string(format!("/sys/class/dmi/id/{f}")).map(|s| s.trim().to_string()).unwrap_or_default();
+    if dmi("board_vendor") == "Valve" {
+        let model = match dmi("board_name").as_str() {
+            "Galileo" => "Steam Deck OLED",
+            "Jupiter" => "Steam Deck",
+            _ => "Valve",
+        };
+        name = format!("{name} ({model})");
+    }
+    if let Ok(kernel) = std::fs::read_to_string("/proc/sys/kernel/osrelease") {
+        name = format!("{name}, Linux {}", kernel.trim());
+    }
+    Some(name)
 }

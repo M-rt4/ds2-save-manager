@@ -1,6 +1,7 @@
-//! Where each release of Dark Souls II is installed, and where it keeps its saves. Both
-//! releases write to the same `%APPDATA%\DarkSoulsII\<account>` folders, each under its
-//! own file name, so one account folder can hold an original and a Scholar save.
+//! Where each release of Dark Souls II is installed, and where it keeps its saves. On
+//! Windows both releases write to the same `%APPDATA%\DarkSoulsII\<account>` folders, each
+//! under its own file name; on Linux and Steam Deck each release has its own Proton prefix
+//! (see `platform`).
 
 use std::collections::HashMap;
 use std::fs;
@@ -17,15 +18,10 @@ use super::error::{Result, SaveError};
 use super::file::{SaveFile, SLOT_COUNT};
 use super::regulation::{self, Regulation};
 
-const EXE: &str = "DarkSoulsII.exe";
+pub use super::platform::vdf_values;
+use super::platform::{same_path, steam_app, steam_libraries};
 
-/// Steam app ids of the two releases.
-fn steam_app(edition: Edition) -> u32 {
-    match edition {
-        Edition::Original => 236430,
-        Edition::Scholar => 335300,
-    }
-}
+const EXE: &str = "DarkSoulsII.exe";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -135,7 +131,6 @@ pub fn list(manual: &[ManualFolder]) -> Vec<GameInfo> {
         let exe = classify(&dir).filter(|(_, e)| *e == m.edition).map(|(exe, _)| display(&exe));
         found.push((m.edition, Install::new(m.path.clone(), exe, InstallSource::Manual)));
     }
-    let root = disk::saves_root();
     Edition::ALL
         .into_iter()
         .map(|edition| {
@@ -145,12 +140,13 @@ pub fn list(manual: &[ManualFolder]) -> Vec<GameInfo> {
                     installs.push(install.clone());
                 }
             }
+            let roots = disk::saves_roots(Some(edition));
             GameInfo {
                 edition,
                 steam_app_id: steam_app(edition),
                 installs,
-                saves_root: root.as_deref().map(display),
-                saves: root.as_deref().map(|r| saves_in(r, edition)).unwrap_or_default(),
+                saves_root: roots.first().map(|r| display(r)),
+                saves: roots.iter().flat_map(|r| saves_in(r, edition)).collect(),
             }
         })
         .collect()
@@ -287,13 +283,11 @@ fn existing_save(path: &Path, folder: &str, account: Option<u64>) -> Option<Game
 // ---------- Steam ----------
 
 fn detect_steam() -> Vec<(Edition, Install)> {
-    let Some(steam) = steam_dir() else { return Vec::new() };
-    let mut libraries = vec![steam.clone()];
-    if let Ok(vdf) = fs::read_to_string(steam.join("steamapps").join("libraryfolders.vdf")) {
-        for path in vdf_values(&vdf, "path") {
-            let path = PathBuf::from(path);
-            if !libraries.iter().any(|l| same_path(&display(l), &display(&path))) {
-                libraries.push(path);
+    let mut libraries: Vec<PathBuf> = Vec::new();
+    for steam in steam_dirs() {
+        for library in steam_libraries(&steam) {
+            if !libraries.iter().any(|l| same_path(&display(l), &display(&library))) {
+                libraries.push(library);
             }
         }
     }
@@ -314,52 +308,25 @@ fn detect_steam() -> Vec<(Edition, Install)> {
     found
 }
 
-fn steam_dir() -> Option<PathBuf> {
-    let from_registry = [
-        (Hive::CurrentUser, r"Software\Valve\Steam", "SteamPath"),
-        (Hive::LocalMachine, r"SOFTWARE\WOW6432Node\Valve\Steam", "InstallPath"),
-        (Hive::LocalMachine, r"SOFTWARE\Valve\Steam", "InstallPath"),
-    ];
-    from_registry
-        .into_iter()
-        .filter_map(|(hive, key, value)| registry::string(hive, key, value))
-        .map(|p| PathBuf::from(p.replace('/', "\\")))
-        .find(|p| p.join("steamapps").is_dir())
-}
-
-/// The values of every `"key" "value"` pair named `key` in a Valve KeyValues text
-/// (`libraryfolders.vdf`, `appmanifest_*.acf`), unescaped.
-pub fn vdf_values(text: &str, key: &str) -> Vec<String> {
-    let mut out = Vec::new();
-    for line in text.lines() {
-        let tokens = quoted(line.trim());
-        if let [k, v] = tokens.as_slice() {
-            if k.eq_ignore_ascii_case(key) {
-                out.push(v.clone());
-            }
-        }
+/// Steam installs: from the registry on Windows, from the usual places under the home folder
+/// on Linux and Steam Deck (native, Flatpak, Snap).
+fn steam_dirs() -> Vec<PathBuf> {
+    if cfg!(windows) {
+        let from_registry = [
+            (Hive::CurrentUser, r"Software\Valve\Steam", "SteamPath"),
+            (Hive::LocalMachine, r"SOFTWARE\WOW6432Node\Valve\Steam", "InstallPath"),
+            (Hive::LocalMachine, r"SOFTWARE\Valve\Steam", "InstallPath"),
+        ];
+        from_registry
+            .into_iter()
+            .filter_map(|(hive, key, value)| registry::string(hive, key, value))
+            .map(|p| PathBuf::from(p.replace('/', "\\")))
+            .find(|p| p.join("steamapps").is_dir())
+            .into_iter()
+            .collect()
+    } else {
+        std::env::var_os("HOME").map(|h| super::platform::linux_steam_dirs(Path::new(&h))).unwrap_or_default()
     }
-    out
-}
-
-fn quoted(line: &str) -> Vec<String> {
-    let mut tokens = Vec::new();
-    let mut chars = line.chars();
-    while let Some(c) = chars.next() {
-        if c != '"' {
-            continue;
-        }
-        let mut s = String::new();
-        while let Some(c) = chars.next() {
-            match c {
-                '"' => break,
-                '\\' => s.extend(chars.next()),
-                c => s.push(c),
-            }
-        }
-        tokens.push(s);
-    }
-    tokens
 }
 
 // ---------- Installers ----------
@@ -456,12 +423,6 @@ pub fn remove_folder(settings: &Path, folder: &str) -> Result<()> {
 
 fn display(p: &Path) -> String {
     p.to_string_lossy().into_owned()
-}
-
-/// Windows paths compare without case and without a trailing separator.
-fn same_path(a: &str, b: &str) -> bool {
-    let norm = |s: &str| s.trim_end_matches(['\\', '/']).replace('/', "\\").to_lowercase();
-    norm(a) == norm(b)
 }
 
 #[derive(Clone, Copy)]

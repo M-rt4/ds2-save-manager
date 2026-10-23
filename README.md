@@ -20,6 +20,16 @@ Asıl amaç: orijinal sürümde başlanmış bir yolculuğa Scholar of the First
 
 Güvenlik: oyun açıkken yazma kapalıdır; dosya açıldıktan sonra oyun tarafından değiştirildiyse yazılmaz; her yazmadan önce önceki dosya kaydın yanındaki `DS2 Save Manager Backups` klasörüne zaman damgasıyla yedeklenir; yazılan dosya diske gitmeden önce yeniden okunup doğrulanır.
 
+## Platformlar
+
+Windows, Linux ve Steam Deck. Konsollar kapsam dışı.
+
+- **Windows:** iki sürüm de `%APPDATA%\DarkSoulsII\<hesap>` klasörünü paylaşır.
+- **Linux / Steam Deck:** oyun Proton ya da Wine içinde çalışır ve her sürümün kendi öneki vardır. Uygulama şunları tarar:
+  - Steam: yerel kurulum, Flatpak, Snap ve `libraryfolders.vdf`'teki tüm kütüphaneler (Steam Deck'te microSD kart dahil). Konum: `steamapps/compatdata/236430` (orijinal) ve `335300` (Scholar) altındaki `pfx/drive_c/users/steamuser/AppData/Roaming/DarkSoulsII`.
+  - Steam dışı: `~/.wine`, Heroic (`~/Games/Heroic/Prefixes`) ve Lutris (`~/Games`) önekleri.
+  - Linux'ta orijinalden Scholar'a aktarılan kayıt, Scholar önekindeki aynı hesap klasörüne yazılır.
+
 ## Kayıt formatı
 
 `.sl2` bir BND4 arşividir; 23 bölümün her biri `[MD5][IV][AES-128-CBC]` olarak şifrelidir. İki sürüm **aynı düzeni** kullanır, yalnızca anahtar farklıdır:

@@ -140,12 +140,12 @@ fn folder_account(path: &Path) -> Option<u64> {
     path.parent().and_then(|p| p.file_name()).and_then(|f| disk::account_of_folder(&f.to_string_lossy()))
 }
 
-fn local_accounts() -> Vec<LocalAccount> {
-    let Some(root) = disk::saves_root() else { return Vec::new() };
-    let mut out: Vec<LocalAccount> = std::fs::read_dir(root)
-        .into_iter()
-        .flatten()
-        .flatten()
+/// The account folders a release can write to on this machine (on Linux each release has
+/// its own prefix, so the list depends on the release).
+fn local_accounts(edition: Edition) -> Vec<LocalAccount> {
+    let mut out: Vec<LocalAccount> = disk::saves_roots(Some(edition))
+        .iter()
+        .flat_map(|root| std::fs::read_dir(root).into_iter().flatten().flatten())
         .filter_map(|d| {
             let folder = d.file_name().to_string_lossy().into_owned();
             let id = disk::account_of_folder(&folder)?;
@@ -313,7 +313,7 @@ fn build(source: &SaveFile, req: &ConversionRequest, base: Option<&SaveFile>) ->
         target_folder: folder.map(|a| a.to_string()),
         result: result.map(|a| a.to_string()),
         origin,
-        local: local_accounts(),
+        local: local_accounts(req.target_edition),
     };
     Ok(Built { out, changes, format, accounts })
 }
@@ -362,7 +362,7 @@ pub async fn plan_conversion(state: State<'_, AppState>, req: ConversionRequest)
             target_folder: folder_account(&path).map(|a| a.to_string()),
             result: None,
             origin: "source",
-            local: local_accounts(),
+            local: local_accounts(req.target_edition),
         },
         changes: Vec::new(),
         blocked: None,
@@ -415,15 +415,22 @@ pub async fn run_conversion(state: State<'_, AppState>, req: ConversionRequest) 
     })
 }
 
-/// Where a save of `edition` should go: the source's own account folder when it sits in one,
-/// else the local account folder that holds the most saves.
+/// Where a save of `edition` should go: the same account's folder among the release's own
+/// saves folders (on Windows that is the source's folder itself; on Linux the release's
+/// Proton prefix), else the local account folder that holds the most saves.
 #[tauri::command]
 pub async fn default_target(path: String, edition: Edition) -> String {
     let p = PathBuf::from(&path);
-    if folder_account(&p).is_some() {
-        return p.with_file_name(edition.file_name()).to_string_lossy().into_owned();
+    let local = local_accounts(edition);
+    if let Some(id) = folder_account(&p) {
+        if let Some(a) = local.iter().find(|a| a.id == id.to_string()) {
+            return Path::new(&a.folder).join(edition.file_name()).to_string_lossy().into_owned();
+        }
+        if local.is_empty() {
+            return p.with_file_name(edition.file_name()).to_string_lossy().into_owned();
+        }
     }
-    match local_accounts().first() {
+    match local.first() {
         Some(a) => Path::new(&a.folder).join(edition.file_name()).to_string_lossy().into_owned(),
         None => p.with_file_name(edition.file_name()).to_string_lossy().into_owned(),
     }
