@@ -1,4 +1,6 @@
+import { useEffect, useState } from 'react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
+import { aboutApi } from '../api';
 import { useStore } from '../store';
 import { useT } from '../i18n';
 import { Bonfire } from './icons';
@@ -10,6 +12,11 @@ export function TitleBar() {
   const lang = useStore((s) => s.lang);
   const setLang = useStore((s) => s.setLang);
   const openSettings = useStore((s) => s.setSettingsOpen);
+  const [devLabel, setDevLabel] = useState<string | null>(null);
+
+  useEffect(() => {
+    void aboutApi.devLabel().then(setDevLabel).catch(() => setDevLabel(null));
+  }, []);
 
   return (
     <header className="titlebar" data-tauri-drag-region>
@@ -20,6 +27,11 @@ export function TitleBar() {
       <span className="subtitle" data-tauri-drag-region>
         {t('app.subtitle')}
       </span>
+      {devLabel && (
+        <span className="dev-badge" data-tauri-drag-region title="Development copy">
+          DEV · {devLabel}
+        </span>
+      )}
       <div className="spacer" data-tauri-drag-region />
       <button className="lang" onClick={() => openSettings(true)}>
         {t('settings.open')}

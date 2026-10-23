@@ -2132,3 +2132,14 @@ button.place:hover {
   white-space: normal;
   text-align: right;
 }
+
+/* Development copies say so, and which one they are, in the title bar. */
+.dev-badge {
+  margin-left: 6px;
+  padding: 1px 9px;
+  border: 1px solid rgba(124, 173, 240, 0.5);
+  color: var(--raised);
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}

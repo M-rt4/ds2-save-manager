@@ -374,7 +374,9 @@ export interface SystemInfo {
 }
 
 export const aboutApi = {
-  systemInfo: () => invoke<SystemInfo>('system_info')
+  systemInfo: () => invoke<SystemInfo>('system_info'),
+  /** Set only in development builds. */
+  devLabel: () => invoke<string | null>('dev_label')
 };
 
 export interface RawMatch {

@@ -61,3 +61,10 @@ fn os_version() -> Option<String> {
     }
     Some(name)
 }
+
+/// Development copies name themselves (`DS2SM_DEV_LABEL`, e.g. "worker1 · gamepad") so the
+/// user can tell the copies on screen apart; release builds have no label.
+#[tauri::command]
+pub fn dev_label() -> Option<String> {
+    cfg!(debug_assertions).then(|| std::env::var("DS2SM_DEV_LABEL").unwrap_or_else(|_| "dev".into()))
+}

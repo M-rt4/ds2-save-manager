@@ -15,18 +15,21 @@ fn main() {
         .plugin(tauri_plugin_opener::init())
         .manage(commands::AppState::default())
         .setup(|app| {
+            let title = match commands_about::dev_label() {
+                Some(label) => format!("DS2 Save Manager (dev: {label})"),
+                None => "DS2 Save Manager".into(),
+            };
             let mut window = WebviewWindowBuilder::new(app, "main", WebviewUrl::default())
-                .title("DS2 Save Manager")
+                .title(title)
                 .inner_size(1280.0, 800.0)
                 .min_inner_size(1040.0, 660.0)
                 .decorations(false)
                 .background_color(tauri::window::Color(7, 7, 10, 255))
                 .center();
-            // Debug builds started with DS2SM_TEST_WINDOW open off screen, unfocused and
-            // out of the taskbar, so a test copy never steps in front of the game or the
-            // user's own windows. It is driven over WebView2's CDP port instead.
-            if cfg!(debug_assertions) && std::env::var_os("DS2SM_TEST_WINDOW").is_some() {
-                window = window.position(-4000.0, -4000.0).focused(false).skip_taskbar(true);
+            // Development copies stay on top of everything, without taking focus when they
+            // open, so the user can watch changes land while working in other windows.
+            if cfg!(debug_assertions) {
+                window = window.always_on_top(true).focused(false);
             }
             window.build()?;
             Ok(())
@@ -55,6 +58,7 @@ fn main() {
             commands_games::add_game_folder,
             commands_games::remove_game_folder,
             commands_about::system_info,
+            commands_about::dev_label,
             commands_raw::raw_read,
             commands_raw::raw_write,
             commands_raw::raw_find,
