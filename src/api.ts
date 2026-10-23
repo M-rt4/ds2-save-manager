@@ -437,3 +437,29 @@ export const documentApi = {
   writeFile: (path: string, text: string) => invoke<void>('document_write_file', { path, text }),
   readFile: (path: string) => invoke<string>('document_read_file', { path })
 };
+
+export type RecordChangeKind = 'added' | 'modified' | 'removed';
+
+export interface RecordChange {
+  /** The record's place in the character block, as `Item.offset`. */
+  offset: number;
+  kind: RecordChangeKind;
+  /** What the record holds on disk: the removed item, the one an added item replaced, the modified item before. */
+  before: Item | null;
+  /** For modified records: `quantity`, `durability`, `reinforcement`, `infusion`, `charges` or `bytes`. */
+  fields: { field: string; from: unknown; to: unknown }[];
+}
+
+/** A character's inventory against the file on disk. */
+export interface InventoryChanges {
+  records: RecordChange[];
+  added: number;
+  modified: number;
+  removed: number;
+}
+
+export const inventoryApi = {
+  changes: (id: string, slot: number) => invoke<InventoryChanges>('inventory_changes', { id, slot }),
+  /** Puts one record back as the file on disk holds it; resolves to whether anything changed. */
+  revert: (id: string, slot: number, offset: number) => invoke<boolean>('inventory_revert', { id, slot, offset })
+};
