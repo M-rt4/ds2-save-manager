@@ -256,7 +256,8 @@ export const useStore = create<State>((set, get) => ({
       const report = await api.writeSave(doc.id);
       const fresh = await api.getSave(doc.id);
       set({ doc: fresh });
-      get().toast(report.backup ? get().t('toast.saved', { path: report.backup }) : get().t('toast.savedNoBackup'));
+      const file = doc.path;
+      get().toast(report.backup ? get().t('toast.saved', { file, path: report.backup }) : get().t('toast.savedNoBackup', { file }));
       void get().refreshSaves();
     } catch (e) {
       get().fail(e);

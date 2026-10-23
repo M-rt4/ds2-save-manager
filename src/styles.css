@@ -2143,6 +2143,16 @@ button.place:hover {
   letter-spacing: 0.04em;
   white-space: nowrap;
 }
+/* A copy pointed at a scratch saves folder: says so loudly, since its saves never reach the game. */
+.test-badge {
+  padding: 1px 10px;
+  border: 1px solid rgba(232, 150, 70, 0.75);
+  background: rgba(232, 150, 70, 0.14);
+  color: #f0b27a;
+  font-size: 13px;
+  white-space: nowrap;
+  cursor: help;
+}
 
 /* ---------- Raw data: readable (JSON) view ---------- */
 

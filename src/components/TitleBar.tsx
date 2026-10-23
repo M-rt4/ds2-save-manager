@@ -13,9 +13,11 @@ export function TitleBar() {
   const setLang = useStore((s) => s.setLang);
   const openSettings = useStore((s) => s.setSettingsOpen);
   const [devLabel, setDevLabel] = useState<string | null>(null);
+  const [testRoot, setTestRoot] = useState<string | null>(null);
 
   useEffect(() => {
     void aboutApi.devLabel().then(setDevLabel).catch(() => setDevLabel(null));
+    void aboutApi.testSavesRoot().then(setTestRoot).catch(() => setTestRoot(null));
   }, []);
 
   return (
@@ -30,6 +32,11 @@ export function TitleBar() {
       {devLabel && (
         <span className="dev-badge" data-tauri-drag-region title="Development copy">
           DEV · {devLabel}
+        </span>
+      )}
+      {testRoot && (
+        <span className="test-badge" data-tauri-drag-region title={t('app.testFolderHint', { path: testRoot })}>
+          {t('app.testFolder')}
         </span>
       )}
       <div className="spacer" data-tauri-drag-region />

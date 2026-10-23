@@ -376,7 +376,9 @@ export interface SystemInfo {
 export const aboutApi = {
   systemInfo: () => invoke<SystemInfo>('system_info'),
   /** Set only in development builds. */
-  devLabel: () => invoke<string | null>('dev_label')
+  devLabel: () => invoke<string | null>('dev_label'),
+  /** Set when this copy lists and writes a scratch folder instead of the real saves. */
+  testSavesRoot: () => invoke<string | null>('test_saves_root')
 };
 
 export interface RawMatch {

@@ -60,6 +60,7 @@ fn main() {
             commands_games::remove_game_folder,
             commands_about::system_info,
             commands_about::dev_label,
+            commands_about::test_saves_root,
             commands_raw::raw_read,
             commands_raw::raw_write,
             commands_raw::raw_find,

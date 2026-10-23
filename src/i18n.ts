@@ -5,6 +5,8 @@ import { useStore } from './store';
 
 const en = {
   'app.subtitle': 'Save Manager',
+  'app.testFolder': 'Test folder: your real saves are not touched',
+  'app.testFolderHint': 'This copy lists, opens and writes saves only in {path}. Saving here does not change the files the game loads.',
   'window.minimize': 'Minimize',
   'window.maximize': 'Maximize',
   'window.close': 'Close',
@@ -133,8 +135,8 @@ const en = {
   'confirm.discard': 'Discard the unsaved changes to {file}?',
   'confirm.single': 'Put {name} into slot {slot} of {file}?',
 
-  'toast.saved': 'Saved. Backup: {path}',
-  'toast.savedNoBackup': 'Saved.',
+  'toast.saved': 'Saved to {file}. Backup: {path}',
+  'toast.savedNoBackup': 'Saved to {file}.',
   'toast.reverted': 'Changes discarded.',
 
   'err.gameRunning': 'Dark Souls II is running. Quit to the desktop, then try again.',
@@ -413,6 +415,8 @@ export type Key = keyof typeof en;
 
 const tr: Record<Key, string> = {
   'app.subtitle': 'Kayıt Yöneticisi',
+  'app.testFolder': 'Test klasörü: gerçek kayıtlarına dokunulmaz',
+  'app.testFolderHint': 'Bu kopya yalnızca {path} içindeki kayıtları listeler, açar ve yazar. Burada kaydetmek oyunun yüklediği dosyaları değiştirmez.',
   'window.minimize': 'Simge durumuna küçült',
   'window.maximize': 'Ekranı kapla',
   'window.close': 'Kapat',
@@ -541,8 +545,8 @@ const tr: Record<Key, string> = {
   'confirm.discard': '{file} üzerindeki kaydedilmemiş değişikliklerden vazgeçilsin mi?',
   'confirm.single': '{name}, {file} dosyasının {slot}. yuvasına konsun mu?',
 
-  'toast.saved': 'Kaydedildi. Yedek: {path}',
-  'toast.savedNoBackup': 'Kaydedildi.',
+  'toast.saved': '{file} dosyasına kaydedildi. Yedek: {path}',
+  'toast.savedNoBackup': '{file} dosyasına kaydedildi.',
   'toast.reverted': 'Değişikliklerden vazgeçildi.',
 
   'err.gameRunning': 'Dark Souls II açık. Masaüstüne çıkıp yeniden deneyin.',

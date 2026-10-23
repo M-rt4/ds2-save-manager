@@ -68,3 +68,10 @@ fn os_version() -> Option<String> {
 pub fn dev_label() -> Option<String> {
     cfg!(debug_assertions).then(|| std::env::var("DS2SM_DEV_LABEL").unwrap_or_else(|_| "dev".into()))
 }
+
+/// The scratch saves folder a test copy was pointed at (`DS2SM_SAVES_ROOT`), so the window can
+/// say plainly that the real saves are not the ones it lists and writes.
+#[tauri::command]
+pub fn test_saves_root() -> Option<String> {
+    std::env::var("DS2SM_SAVES_ROOT").ok().filter(|r| !r.is_empty())
+}
