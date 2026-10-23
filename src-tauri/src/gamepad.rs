@@ -4,6 +4,7 @@
 //! drives the app behind it. The UI turns the events into focus moves and actions (src/pad.ts).
 
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::mpsc::{Receiver, Sender};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -47,6 +48,25 @@ struct Front {
     hwnd: isize,
 }
 
+/// A press from `debug_pad`: the button, pressed or released, and whether to send it even
+/// while the window is behind (tests leave the focus with whatever the user is doing).
+type Fake = (Button, bool, bool);
+
+/// Development builds only: presses handed to the reader thread as if a pad had sent them.
+struct Fakes(Sender<Fake>);
+
+/// Development builds only, for tests over CDP: a press that takes a real pad's way from the
+/// reader thread (button names, the front-window gate, the `gamepad` event), unlike
+/// `window.__ds2pad`, which starts in the UI.
+#[tauri::command]
+pub fn debug_pad(app: AppHandle, name: String, pressed: bool, even_behind: bool) -> Result<(), String> {
+    use Button::*;
+    let fakes = app.try_state::<Fakes>().ok_or("development builds only")?;
+    let all = [South, East, North, West, LeftTrigger, RightTrigger, LeftTrigger2, RightTrigger2, Select, Start, LeftThumb, RightThumb, DPadUp, DPadDown, DPadLeft, DPadRight];
+    let b = all.into_iter().find(|b| button(*b) == Some(name.as_str())).ok_or("unknown button")?;
+    fakes.0.send((b, pressed, even_behind)).map_err(|e| e.to_string())
+}
+
 /// Starts reading pads on a thread of its own. Call once the main window exists.
 pub fn start(app: &AppHandle) {
     let window = app.get_webview_window("main");
@@ -64,11 +84,16 @@ pub fn start(app: &AppHandle) {
         });
     }
     let pads = app.state::<Pads>().0.clone();
+    let fakes = cfg!(debug_assertions).then(|| {
+        let (tx, rx) = std::sync::mpsc::channel();
+        app.manage(Fakes(tx));
+        rx
+    });
     let app = app.clone();
-    let _ = std::thread::Builder::new().name("gamepad".into()).spawn(move || run(&app, &front, &pads));
+    let _ = std::thread::Builder::new().name("gamepad".into()).spawn(move || run(&app, &front, &pads, fakes));
 }
 
-fn run(app: &AppHandle, front_of: &Front, pads: &Mutex<Vec<PadInfo>>) {
+fn run(app: &AppHandle, front_of: &Front, pads: &Mutex<Vec<PadInfo>>, fakes: Option<Receiver<Fake>>) {
     let mut gilrs = match Gilrs::new() {
         Ok(g) => g,
         Err(gilrs::Error::NotImplemented(g)) => g,
@@ -92,6 +117,11 @@ fn run(app: &AppHandle, front_of: &Front, pads: &Mutex<Vec<PadInfo>>) {
             let _ = app.emit("gamepad", PadEvent::Blur);
         }
         front = now_front;
+        for (b, pressed, even_behind) in fakes.iter().flat_map(Receiver::try_iter) {
+            if let (Some(button), true) = (button(b), front || even_behind) {
+                let _ = app.emit("gamepad", PadEvent::Button { button, pressed });
+            }
+        }
         let Some(event) = event else { continue };
         let is_input = !matches!(event.event, EventType::Connected | EventType::Disconnected);
         if is_input && skip.covers(&gilrs.gamepad(event.id)) {

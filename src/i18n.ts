@@ -14,6 +14,7 @@ const en = {
   'window.minimize': 'Minimize',
   'window.maximize': 'Maximize',
   'window.close': 'Close',
+  'window.quitUnsaved': 'There are unsaved changes; quitting discards them. Quit DS2 Save Manager?',
 
   'rail.title': 'Saves',
   'rail.account': 'Account {id}',
@@ -398,7 +399,6 @@ const en = {
   'pad.quit': 'Quit',
   'pad.quitHint': 'Close DS2 Save Manager.',
   'pad.quitConfirm': 'Quit DS2 Save Manager?',
-  'pad.quitUnsaved': 'There are unsaved changes; quitting discards them. Quit DS2 Save Manager?',
 
   'osk.title': 'Keyboard',
   'osk.type': 'Type',
@@ -490,6 +490,7 @@ const tr: Record<Key, string> = {
   'window.minimize': 'Simge durumuna küçült',
   'window.maximize': 'Ekranı kapla',
   'window.close': 'Kapat',
+  'window.quitUnsaved': 'Kaydedilmemiş değişiklikler var; çıkarsanız kaybolur. DS2 Save Manager kapatılsın mı?',
 
   'rail.title': 'Kayıtlar',
   'rail.account': 'Hesap {id}',
@@ -874,7 +875,6 @@ const tr: Record<Key, string> = {
   'pad.quit': 'Çık',
   'pad.quitHint': 'DS2 Save Manager\'ı kapatır.',
   'pad.quitConfirm': 'DS2 Save Manager kapatılsın mı?',
-  'pad.quitUnsaved': 'Kaydedilmemiş değişiklikler var; çıkarsanız kaybolur. DS2 Save Manager kapatılsın mı?',
 
   'osk.title': 'Klavye',
   'osk.type': 'Yaz',

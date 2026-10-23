@@ -334,9 +334,6 @@ export const useStore = create<State>((set, get) => ({
 }));
 
 /** Whether anything is waiting to be written: in-memory edits or a status draft. */
-export function useHasChanges(): boolean {
-  return useStore((s) => {
-    if (s.doc?.dirty) return true;
-    return !!(s.character && s.draft && draftEdit(s.character, s.draft));
-  });
-}
+export const hasChanges = (s: State): boolean => !!s.doc?.dirty || !!(s.character && s.draft && draftEdit(s.character, s.draft));
+
+export const useHasChanges = () => useStore(hasChanges);

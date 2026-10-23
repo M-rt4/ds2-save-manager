@@ -92,6 +92,7 @@ fn main() {
             commands_inventory::inventory_changes,
             commands_inventory::inventory_revert,
             gamepad::gamepads,
+            gamepad::debug_pad,
             commands_files::browse_places,
             commands_files::list_dir,
         ])

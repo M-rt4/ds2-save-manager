@@ -46,7 +46,9 @@ export function SettingsView() {
   const changes = useHasChanges();
   const quit = () => {
     close(false);
-    useStore.getState().ask(t(changes ? 'pad.quitUnsaved' : 'pad.quitConfirm'), () => void getCurrentWindow().close());
+    // With unsaved changes the window itself asks (App); without, a stray press still gets a No.
+    if (changes) void getCurrentWindow().close();
+    else useStore.getState().ask(t('pad.quitConfirm'), () => void getCurrentWindow().close());
   };
 
   return (
