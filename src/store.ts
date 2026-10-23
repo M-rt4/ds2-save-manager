@@ -98,6 +98,8 @@ interface State {
   editInventory: (ops: InventoryOp[]) => Promise<boolean>;
   loadCatalog: () => Promise<ItemDef[]>;
   saveChanges: () => Promise<void>;
+  /** Puts the Status draft into the in-memory save, for steps that read the save (save, transfer). */
+  commitDraft: () => Promise<void>;
   revert: () => void;
   toast: (text: string, tone?: Toast['tone']) => void;
   fail: (e: unknown) => void;
@@ -180,8 +182,14 @@ export const useStore = create<State>((set, get) => ({
     const go = async () => {
       set({ busy: true });
       try {
-        if (current && current.path !== path) await api.closeSave(current.id).catch(() => undefined);
         const doc = await api.openSave(path);
+        if (current && doc.id === current.id) {
+          // The save already open (picked again, by any spelling of its path): the backend kept
+          // its unsaved edits, and the character and its Status draft stay as they are.
+          set({ doc });
+          return;
+        }
+        if (current) await api.closeSave(current.id).catch(() => undefined);
         set({ doc, slot: null, character: null, draft: null });
         const pick = doc.slots.find((s) => s.slot === doc.lastSlot && s.occupied) ?? doc.slots.find((s) => s.occupied);
         if (pick) await get().selectSlot(pick.slot);
@@ -191,7 +199,7 @@ export const useStore = create<State>((set, get) => ({
         set({ busy: false });
       }
     };
-    if (current?.dirty && current.path !== path) {
+    if (current && current.path !== path && hasChanges(get())) {
       get().ask(get().t('confirm.discard', { file: current.fileName }), () => void go());
     } else {
       await go();
@@ -225,7 +233,9 @@ export const useStore = create<State>((set, get) => ({
     try {
       const character = await api.editCharacter(doc.id, slot, { inventory: ops });
       const fresh = await api.getSave(doc.id);
-      set({ character, doc: fresh });
+      // Another save or character may have been picked while this was on its way.
+      const now = get();
+      if (now.doc?.id === doc.id) set({ doc: fresh, ...(now.slot === slot ? { character } : {}) });
       return true;
     } catch (e) {
       get().fail(e);
@@ -242,28 +252,35 @@ export const useStore = create<State>((set, get) => ({
   },
 
   saveChanges: async () => {
-    const { doc, slot, character, draft } = get();
+    const { doc } = get();
     if (!doc) return;
     set({ busy: true });
     try {
-      if (character && draft && slot !== null) {
-        const edit = draftEdit(character, draft);
-        if (edit) {
-          const updated = await api.editCharacter(doc.id, slot, edit);
-          set({ character: updated, draft: draftOf(updated) });
-        }
-      }
+      await get().commitDraft();
       const report = await api.writeSave(doc.id);
-      const fresh = await api.getSave(doc.id);
-      set({ doc: fresh });
       const file = doc.path;
       get().toast(report.backup ? get().t('toast.saved', { file, path: report.backup }) : get().t('toast.savedNoBackup', { file }));
       void get().refreshSaves();
     } catch (e) {
       get().fail(e);
     } finally {
+      // Show the save as it now stands either way: when writing failed (the game running, the
+      // file changed on disk) the draft folded in above is in memory only and must read as
+      // unsaved, or Save, the switch guard and the close guard would all think there is nothing.
+      const fresh = await api.getSave(doc.id).catch(() => null);
+      if (fresh && get().doc?.id === doc.id) set({ doc: fresh });
       set({ busy: false });
     }
+  },
+
+  commitDraft: async () => {
+    const { doc, slot, character, draft } = get();
+    if (!doc || slot === null || !character || !draft) return;
+    const edit = draftEdit(character, draft);
+    if (!edit) return;
+    const updated = await api.editCharacter(doc.id, slot, edit);
+    const now = get();
+    if (now.doc?.id === doc.id && now.slot === slot) set({ character: updated, draft: draftOf(updated) });
   },
 
   revert: () => {
@@ -329,9 +346,6 @@ export const useStore = create<State>((set, get) => ({
 }));
 
 /** Whether anything is waiting to be written: in-memory edits or a status draft. */
-export function useHasChanges(): boolean {
-  return useStore((s) => {
-    if (s.doc?.dirty) return true;
-    return !!(s.character && s.draft && draftEdit(s.character, s.draft));
-  });
-}
+export const hasChanges = (s: State): boolean => !!s.doc?.dirty || !!(s.character && s.draft && draftEdit(s.character, s.draft));
+
+export const useHasChanges = () => useStore(hasChanges);

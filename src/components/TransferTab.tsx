@@ -56,6 +56,8 @@ export function TransferTab({ doc }: { doc: SaveView }) {
 
   useEffect(() => {
     if (!targetPath || (kind === 'single' && request.slot === null)) return;
+    // The plan on screen is for the request it was made for: never offer to run it for another.
+    setPlan(null);
     let live = true;
     api
       .planConversion(request)
@@ -98,6 +100,8 @@ export function TransferTab({ doc }: { doc: SaveView }) {
     store.ask(question, async () => {
       setRunning(true);
       try {
+        // The character moves as it stands here, Status edits not yet saved included.
+        await store.commitDraft();
         const report = await api.runConversion(request);
         setGeneration((g) => g + 1);
         await store.refreshSaves();
