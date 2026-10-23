@@ -870,7 +870,7 @@ dependencies = [
 
 [[package]]
 name = "ds2-save-manager"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "aes",
  "cbc",
@@ -885,6 +885,7 @@ dependencies = [
  "tauri-build",
  "tauri-plugin-dialog",
  "tauri-plugin-opener",
+ "windows-sys 0.61.2",
  "winreg",
 ]
 
