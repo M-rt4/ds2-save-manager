@@ -113,6 +113,7 @@ Sürüm çıkarmak:
 - Her özellik kendi sürümünü alır ([anlamsal sürümleme](https://semver.org/lang/tr/)): main'e giren her yeni özellik MINOR'u, her düzeltme PATCH'i artırır. Sürüm numarası ve notları aynı birleştirmeyle gelir.
 - Sürüm notları `changelog/<sürüm>.tr.md` ve `.en.md` dosyalarına yazılır.
 - GitHub'da **Actions → Release → Run workflow** (ya da bir `v<sürüm>` etiketi) Windows kurulum paketini, taşınabilir zip'i ve AppImage'ı üretip notlarla birlikte **taslak** bir sürüme yükler. Taslağı yayınlamak etiketi oluşturur.
+- Taslağın notları, son yayınlanan sürümden bu yana gelen her sürümün notlarını en yeniden eskiye birleştirir; arada yayınlanmadan geçilen bir sürümün notları da kaybolmaz. `node scripts/release-notes.mjs --github` taslağın ne diyeceğini önceden gösterir, hiçbir şeyi değiştirmez.
 
 - `scripts/build-item-db.mjs <sl2-analyzer klasörü>` — eşya tablosunu (`src-tauri/data/items.json`) yeniden üretir.
 - `scripts/build-game-font.py "<oyun klasörü>" src/public/fonts/ds2-menu.woff2` — oyunun menü fontunu (bitmap atlas) izleyip web fontuna çevirir. `pip install fonttools brotli potracer pillow numpy` gerekir.
