@@ -408,7 +408,28 @@ const en = {
   'json.imported': '{file} is in the editor. Check the differences below, then apply.',
   'err.documentSyntax': 'The text is not valid JSON for this document.',
   'err.documentInvalid': 'The document has a problem; see the list under the editor.',
-  'err.notJson': 'Only .json files can be read or written here.'
+  'err.notJson': 'Only .json files can be read or written here.',
+
+  'invchg.added': 'New',
+  'invchg.modified': 'Changed',
+  'invchg.removed': 'Removed',
+  'invchg.lead': 'Unsaved changes:',
+  'invchg.nAdded': '{n} new',
+  'invchg.nModified': '{n} changed',
+  'invchg.nRemoved': '{n} removed',
+  'invchg.onlyChanged': 'Only changes',
+  'invchg.showAll': 'Show all',
+  'invchg.inCategory': 'Something here differs from the save on disk',
+  'invchg.undo': 'Undo: put this record back as the save on disk holds it',
+  'invchg.removedTitle': 'Removed; it stays listed until the save is written',
+  'invchg.replaced': 'Takes the place of {name}.',
+  'invchg.since': 'Since the save was read:',
+  'invchg.field.quantity': 'Quantity',
+  'invchg.field.durability': 'Durability',
+  'invchg.field.reinforcement': 'Reinforcement',
+  'invchg.field.infusion': 'Infusion',
+  'invchg.field.charges': 'Charges',
+  'invchg.field.bytes': 'Other bytes'
 } as const;
 
 export type Key = keyof typeof en;
@@ -818,7 +839,28 @@ const tr: Record<Key, string> = {
   'json.imported': '{file} editörde. Aşağıdaki farkları kontrol edip uygulayın.',
   'err.documentSyntax': 'Metin bu belge için geçerli JSON değil.',
   'err.documentInvalid': 'Belgede bir sorun var; editörün altındaki listeye bakın.',
-  'err.notJson': 'Burada yalnızca .json dosyaları okunup yazılabilir.'
+  'err.notJson': 'Burada yalnızca .json dosyaları okunup yazılabilir.',
+
+  'invchg.added': 'Yeni',
+  'invchg.modified': 'Değişti',
+  'invchg.removed': 'Kaldırıldı',
+  'invchg.lead': 'Kaydedilmemiş değişiklikler:',
+  'invchg.nAdded': '{n} yeni',
+  'invchg.nModified': '{n} değişti',
+  'invchg.nRemoved': '{n} kaldırıldı',
+  'invchg.onlyChanged': 'Yalnızca değişenler',
+  'invchg.showAll': 'Tümünü göster',
+  'invchg.inCategory': 'Burada diskteki kayıttan farklı bir şey var',
+  'invchg.undo': 'Geri al: bu kaydı diskteki haline döndür',
+  'invchg.removedTitle': 'Kaldırıldı; kayıt yazılana kadar listede kalır',
+  'invchg.replaced': '{name} yerine geçti.',
+  'invchg.since': 'Kayıt okunduğundan beri:',
+  'invchg.field.quantity': 'Adet',
+  'invchg.field.durability': 'Dayanıklılık',
+  'invchg.field.reinforcement': 'Güçlendirme',
+  'invchg.field.infusion': 'Infusion',
+  'invchg.field.charges': 'Dolum',
+  'invchg.field.bytes': 'Diğer baytlar'
 };
 
 export type Lang = 'tr' | 'en';

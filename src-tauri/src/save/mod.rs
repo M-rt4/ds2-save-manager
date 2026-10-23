@@ -17,6 +17,7 @@ pub mod file;
 pub mod games;
 pub mod header;
 pub mod inventory;
+pub mod inventory_changes;
 pub mod items;
 pub mod maps;
 pub mod platform;

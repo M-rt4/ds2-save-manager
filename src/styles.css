@@ -2385,3 +2385,98 @@ button.place:hover {
 .json-diff .note {
   margin: 6px 0 0;
 }
+
+/* ---------- Inventory: changes against the save on disk ---------- */
+
+/* What will change on the next write takes the Level Up screen's blue; a removed item fades
+   and is struck through, as long as it is still only removed in memory. */
+.chg-tag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 0 6px;
+  border: 1px solid rgba(124, 173, 240, 0.45);
+  color: var(--raised);
+  font-size: 12.5px;
+  line-height: 17px;
+  vertical-align: 1px;
+}
+.chg-tag.added {
+  background: rgba(124, 173, 240, 0.14);
+}
+.chg-tag.removed {
+  border-color: rgba(216, 112, 90, 0.45);
+  color: var(--danger);
+}
+.item.chg-added {
+  box-shadow: inset 3px 0 0 var(--raised);
+}
+.item.chg-modified {
+  box-shadow: inset 2px 0 0 rgba(124, 173, 240, 0.5);
+}
+.item .qty.changed,
+.item .nm .plus.changed {
+  color: var(--raised);
+}
+.item.chg-removed {
+  cursor: default;
+  box-shadow: inset 2px 0 0 rgba(216, 112, 90, 0.5);
+}
+.item.chg-removed .item-card,
+.item.chg-removed .gone {
+  opacity: 0.45;
+}
+.item.chg-removed .gone {
+  text-decoration: line-through;
+}
+.icon-btn.chg-undo:hover {
+  color: var(--raised);
+  border-color: rgba(124, 173, 240, 0.4);
+}
+.cat-chg {
+  width: 6px;
+  height: 6px;
+  margin-left: 2px;
+  border-radius: 50%;
+  background: var(--raised);
+  box-shadow: 0 0 6px rgba(124, 173, 240, 0.6);
+}
+.chg-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  padding: 6px 18px;
+  border-bottom: 1px solid var(--line-faint);
+  color: var(--raised);
+  font-size: 14px;
+}
+.chg-summary .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--raised);
+}
+.chg-summary .btn {
+  margin-left: auto;
+}
+.chg-summary .btn[aria-pressed='true'] {
+  color: var(--bone);
+}
+.chg-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 0;
+  padding: 6px 18px 0 66px;
+  color: var(--ash);
+  font-size: 14px;
+}
+.chg-fields .lead {
+  color: var(--dim);
+}
+.chg-fields .from {
+  color: var(--dim);
+}
+.chg-fields .to {
+  color: var(--raised);
+}

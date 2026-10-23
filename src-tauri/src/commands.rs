@@ -9,7 +9,7 @@ use std::sync::Mutex;
 use ds2save::save::backups::Reason;
 use ds2save::save::character::{self, Character, CharacterEdit, SlotSummary};
 use ds2save::save::disk::{self, FoundSave};
-use ds2save::save::file::{SaveFile, HEADER_ENTRY, SLOT_COUNT};
+use ds2save::save::file::{character_entry, SaveFile, HEADER_ENTRY, SLOT_COUNT};
 use ds2save::save::items::{catalog, ItemDef};
 use ds2save::save::{chunks, header, maps, Edition, SaveError};
 use serde::Serialize;
@@ -22,6 +22,9 @@ pub(crate) struct Doc {
     pub(crate) save: SaveFile,
     fingerprint: [u8; 16],
     dirty: bool,
+    /// The ten character blocks as the file on disk holds them (read, reloaded or last
+    /// written); what the inventory's change marks compare against.
+    saved_characters: Vec<Vec<u8>>,
 }
 
 #[derive(Default)]
@@ -31,8 +34,18 @@ pub struct AppState {
 
 impl Doc {
     pub(crate) fn new(path: PathBuf, save: SaveFile, fingerprint: [u8; 16]) -> Self {
-        Self { path, save, fingerprint, dirty: false }
+        let saved_characters = characters_of(&save);
+        Self { path, save, fingerprint, dirty: false, saved_characters }
     }
+
+    /// A character block as the file on disk holds it.
+    pub(crate) fn saved_character(&self, slot: usize) -> Option<&[u8]> {
+        self.saved_characters.get(slot).map(Vec::as_slice)
+    }
+}
+
+fn characters_of(save: &SaveFile) -> Vec<Vec<u8>> {
+    (0..SLOT_COUNT).map(|s| save.block(character_entry(s)).to_vec()).collect()
 }
 
 impl AppState {
@@ -174,7 +187,7 @@ pub async fn open_save(state: State<'_, AppState>, path: String) -> CmdResult<Sa
     let path = PathBuf::from(path);
     let (save, fingerprint) = read_save(&path)?;
     let id = doc_id(&path);
-    let doc = Doc { path, save, fingerprint, dirty: false };
+    let doc = Doc::new(path, save, fingerprint);
     let v = view(&id, &doc);
     state.docs.lock().unwrap().insert(id, doc);
     Ok(v)
@@ -196,7 +209,7 @@ pub async fn close_save(state: State<'_, AppState>, id: String) -> CmdResult<()>
 pub async fn reload_save(state: State<'_, AppState>, id: String) -> CmdResult<SaveView> {
     state.with_doc(&id, |doc| {
         let (save, fingerprint) = read_save(&doc.path)?;
-        *doc = Doc { path: doc.path.clone(), save, fingerprint, dirty: false };
+        *doc = Doc::new(doc.path.clone(), save, fingerprint);
         Ok(view(&id, doc))
     })
 }
@@ -268,6 +281,7 @@ pub async fn write_save(state: State<'_, AppState>, id: String) -> CmdResult<Wri
         let (backup, fingerprint) = write_checked(&doc.path, &doc.save, Reason::Save)?;
         doc.fingerprint = fingerprint;
         doc.dirty = false;
+        doc.saved_characters = characters_of(&doc.save);
         Ok(WriteReport {
             path: doc.path.to_string_lossy().into_owned(),
             backup: backup.map(|b| b.to_string_lossy().into_owned()),
@@ -294,7 +308,7 @@ impl AppState {
         let mut docs = self.docs.lock().unwrap();
         if let Some(doc) = docs.get_mut(&doc_id(path)) {
             let (save, fingerprint) = read_save(path)?;
-            *doc = Doc { path: doc.path.clone(), save, fingerprint, dirty: false };
+            *doc = Doc::new(doc.path.clone(), save, fingerprint);
         }
         Ok(())
     }

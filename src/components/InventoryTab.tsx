@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react';
-import type { Category, CharacterView, Item } from '../api';
+import type { Category, CharacterView, Item, RecordChange } from '../api';
 import { useStore } from '../store';
 import { useT, type Key } from '../i18n';
 import { CategoryIcon, Cross, ItemIcon, Plus } from './icons';
 import { AddItemView } from './AddItemDialog';
 import { ItemDetail } from './ItemDetail';
+import { ChangeFields, ChangeSummary, ChangeTag, GhostRow, UndoButton, changed, useInventoryChanges } from './InventoryChanges';
 import { CATEGORY_ORDER } from '../game';
 
 export function InventoryTab({ character }: { character: CharacterView }) {
@@ -15,6 +16,7 @@ export function InventoryTab({ character }: { character: CharacterView }) {
   // The record whose stats are open under its row, by its offset in the save.
   const [open, setOpen] = useState<number | null>(null);
   const inv = character.inventory;
+  const changes = useInventoryChanges(useStore((s) => s.doc), character);
 
   const counts = useMemo(() => {
     const m = new Map<Category, number>();
@@ -23,9 +25,13 @@ export function InventoryTab({ character }: { character: CharacterView }) {
   }, [inv.items]);
 
   const q = query.trim().toLowerCase();
-  const shown = inv.items.filter((i) => (cat === 'all' || i.category === cat) && (!q || i.name.toLowerCase().includes(q)));
-  const sorted = [...shown].sort(
-    (a, b) => CATEGORY_ORDER.indexOf(a.category) - CATEGORY_ORDER.indexOf(b.category) || a.offset - b.offset
+  const matches = (i: Item) => (cat === 'all' || i.category === cat) && (!q || i.name.toLowerCase().includes(q));
+  const shown = inv.items.filter((i) => matches(i) && (!changes.only || changes.byOffset.has(i.offset)));
+  // Removed items stay in the list as ghost rows, where they were, until the save is written.
+  const ghosts = changes.removed.filter((r) => r.before && matches(r.before));
+  const categoryOf = (e: Item | RecordChange) => ('kind' in e ? e.before!.category : e.category);
+  const sorted = [...shown, ...ghosts].sort(
+    (a, b) => CATEGORY_ORDER.indexOf(categoryOf(a)) - CATEGORY_ORDER.indexOf(categoryOf(b)) || a.offset - b.offset
   );
 
   if (adding) return <AddItemView onClose={() => setAdding(false)} />;
@@ -35,13 +41,15 @@ export function InventoryTab({ character }: { character: CharacterView }) {
       <div className="inv-cats">
         <button className="row" aria-selected={cat === 'all'} onClick={() => setCat('all')}>
           {t('inv.all')}
+          {changes.categories.size > 0 && <span className="cat-chg" title={t('invchg.inCategory')} />}
           <span className="n">{inv.items.length}</span>
         </button>
-        {CATEGORY_ORDER.filter((c) => counts.has(c)).map((c) => (
+        {CATEGORY_ORDER.filter((c) => counts.has(c) || changes.categories.has(c)).map((c) => (
           <button key={c} className="row" aria-selected={cat === c} onClick={() => setCat(c)}>
             <CategoryIcon category={c} size={16} />
             {t(`cat.${c}` as Key)}
-            <span className="n">{counts.get(c)}</span>
+            {changes.categories.has(c) && <span className="cat-chg" title={t('invchg.inCategory')} />}
+            <span className="n">{counts.get(c) ?? 0}</span>
           </button>
         ))}
       </div>
@@ -57,17 +65,24 @@ export function InventoryTab({ character }: { character: CharacterView }) {
             {inv.unknown > 0 && <> · {t('inv.unknown', { n: inv.unknown })}</>}
           </span>
         </div>
+        <ChangeSummary changes={changes} />
         <div className="inv-list">
           {sorted.length === 0 && <p className="empty-note">{t('inv.empty')}</p>}
-          {sorted.map((i) => (
-            <ItemRow
-              key={i.offset}
-              item={i}
-              editable={character.layoutOk}
-              open={open === i.offset}
-              onToggle={() => setOpen(open === i.offset ? null : i.offset)}
-            />
-          ))}
+          {sorted.map((i) =>
+            'kind' in i ? (
+              <GhostRow key={`gone-${i.offset}`} change={i} onUndo={() => changes.undo(i.offset)} />
+            ) : (
+              <ItemRow
+                key={i.offset}
+                item={i}
+                editable={character.layoutOk}
+                open={open === i.offset}
+                onToggle={() => setOpen(open === i.offset ? null : i.offset)}
+                change={changes.byOffset.get(i.offset)}
+                onUndo={() => changes.undo(i.offset)}
+              />
+            )
+          )}
           {(cat === 'key' || cat === 'gesture') && <p className="note" style={{ padding: '0 18px' }}>{t('inv.readOnly')}</p>}
         </div>
       </div>
@@ -75,7 +90,22 @@ export function InventoryTab({ character }: { character: CharacterView }) {
   );
 }
 
-function ItemRow({ item, editable, open, onToggle }: { item: Item; editable: boolean; open: boolean; onToggle: () => void }) {
+function ItemRow({
+  item,
+  editable,
+  open,
+  onToggle,
+  change,
+  onUndo
+}: {
+  item: Item;
+  editable: boolean;
+  open: boolean;
+  onToggle: () => void;
+  /** How the record differs from the file on disk, if it does. */
+  change?: RecordChange;
+  onUndo: () => void;
+}) {
   const t = useT();
   const edit = useStore((s) => s.editInventory);
   const [qty, setQty] = useState<string | null>(null);
@@ -109,7 +139,7 @@ function ItemRow({ item, editable, open, onToggle }: { item: Item; editable: boo
   return (
     <>
       <div
-        className="row item"
+        className={change ? `row item chg-${change.kind}` : 'row item'}
         role="listitem"
         tabIndex={0}
         aria-selected={open}
@@ -122,13 +152,14 @@ function ItemRow({ item, editable, open, onToggle }: { item: Item; editable: boo
         <span className="nm">
           {item.infusion && <span className="inf">{item.infusion} </span>}
           {item.name}
-          {item.reinforcement > 0 && <span className="plus">+{item.reinforcement}</span>}
+          {item.reinforcement > 0 && <span className={changed(change, 'reinforcement') ? 'plus changed' : 'plus'}>+{item.reinforcement}</span>}
+          {change && <ChangeTag kind={change.kind} />}
           {detail.length > 0 && <span className="detail">{detail.join(', ')}</span>}
         </span>
         <span className="actions" onClick={(e) => e.stopPropagation()}>
           {max !== null && !readOnly ? (
             <input
-              className="field"
+              className={changed(change, 'quantity') ? 'field changed' : 'field'}
               type="number"
               min={1}
               max={max}
@@ -139,8 +170,11 @@ function ItemRow({ item, editable, open, onToggle }: { item: Item; editable: boo
               aria-label={t('inv.quantity')}
             />
           ) : (
-            item.quantity !== null && item.category !== 'gesture' && item.category !== 'spell' && <span className="qty">{item.quantity}</span>
+            item.quantity !== null &&
+            item.category !== 'gesture' &&
+            item.category !== 'spell' && <span className={changed(change, 'quantity') ? 'qty changed' : 'qty'}>{item.quantity}</span>
           )}
+          {change && <UndoButton onUndo={onUndo} />}
           {!readOnly && (
             <button className="icon-btn" title={t('inv.remove')} onClick={() => void edit([{ op: 'remove', offset: item.offset }])}>
               <Cross size={15} />
@@ -148,6 +182,7 @@ function ItemRow({ item, editable, open, onToggle }: { item: Item; editable: boo
           )}
         </span>
       </div>
+      {open && change && <ChangeFields change={change} />}
       {open && (
         <ItemDetail id={item.id} plus={item.reinforcement} infused={!!item.infusion} durability={item.durability} wide />
       )}
