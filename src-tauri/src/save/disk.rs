@@ -23,6 +23,11 @@ pub fn saves_roots(edition: Option<Edition>) -> Vec<PathBuf> {
     if let Some(root) = std::env::var_os("DS2SM_SAVES_ROOT") {
         return vec![PathBuf::from(root)];
     }
+    game_saves_roots(edition)
+}
+
+/// The game's own save folders, whatever `DS2SM_SAVES_ROOT` says.
+fn game_saves_roots(edition: Option<Edition>) -> Vec<PathBuf> {
     #[cfg(windows)]
     {
         let _ = edition;
@@ -116,6 +121,7 @@ pub fn fingerprint(bytes: &[u8]) -> [u8; 16] {
 /// Copies `path` into the backup folder next to it as `<file>.<stamp>.<reason>.bak` and
 /// returns the copy's path.
 pub fn backup(path: &Path, reason: Reason) -> Result<Option<PathBuf>> {
+    ensure_writable(path)?;
     if !path.exists() {
         return Ok(None);
     }
@@ -133,8 +139,57 @@ pub fn backup(path: &Path, reason: Reason) -> Result<Option<PathBuf>> {
     Ok(Some(target))
 }
 
+/// Development builds change simulated data only: anything inside the game's real save folders
+/// is refused, wherever the path came from (the list, a file picker, a typed path), even when
+/// `DS2SM_SAVES_ROOT` itself points there. Only the released app writes real saves.
+pub fn ensure_writable(path: &Path) -> Result<()> {
+    if cfg!(debug_assertions) && inside_any(path, &game_saves_roots(None)) {
+        return Err(SaveError::new(
+            "devRealSave",
+            "This is a development build. It never changes the game's real save folders; only the released app does.",
+        ));
+    }
+    Ok(())
+}
+
+/// Whether `path` lies inside one of `roots`, with links and `..` resolved on both sides.
+fn inside_any(path: &Path, roots: &[PathBuf]) -> bool {
+    let path = comparable(&resolved(path));
+    roots.iter().any(|root| path.starts_with(comparable(&resolved(root))))
+}
+
+/// `path` made absolute, with its longest existing ancestor canonicalized and the rest (files
+/// and folders not written yet) appended as given.
+fn resolved(path: &Path) -> PathBuf {
+    let full = std::path::absolute(path).unwrap_or_else(|_| path.to_path_buf());
+    let mut head = full.as_path();
+    let mut tail = Vec::new();
+    loop {
+        if let Ok(real) = fs::canonicalize(head) {
+            return tail.iter().rev().fold(real, |acc, part| acc.join(part));
+        }
+        match (head.parent(), head.file_name()) {
+            (Some(parent), Some(name)) => {
+                tail.push(name.to_os_string());
+                head = parent;
+            }
+            _ => return full.clone(),
+        }
+    }
+}
+
+/// Windows paths are compared without regard to case; Linux paths as they are.
+fn comparable(path: &Path) -> PathBuf {
+    if cfg!(windows) {
+        PathBuf::from(path.to_string_lossy().to_lowercase())
+    } else {
+        path.to_path_buf()
+    }
+}
+
 /// Writes through a temporary file in the same folder, then swaps it in.
 pub fn write_atomic(path: &Path, bytes: &[u8]) -> Result<()> {
+    ensure_writable(path)?;
     let tmp = path.with_extension("sl2.tmp");
     fs::write(&tmp, bytes)?;
     if let Err(e) = fs::rename(&tmp, path) {
@@ -173,5 +228,34 @@ pub fn game_running() -> bool {
     #[cfg(not(any(windows, target_os = "linux")))]
     {
         false
+    }
+}
+
+#[cfg(test)]
+mod guard_tests {
+    use super::*;
+
+    #[test]
+    fn inside_any_sees_through_new_files_case_and_dots() {
+        let base = std::env::temp_dir().join(format!("ds2sm-guard-{}", std::process::id()));
+        let root = base.join("DarkSoulsII");
+        let elsewhere = base.join("scratch");
+        fs::create_dir_all(root.join("0110000100000666")).unwrap();
+        fs::create_dir_all(&elsewhere).unwrap();
+        let roots = [root.clone()];
+
+        // A save that does not exist yet, in an account folder that does not exist yet.
+        assert!(inside_any(&root.join("0110000100000999").join("DS2SOFS0000.sl2"), &roots));
+        assert!(inside_any(&root.join("0110000100000666").join(BACKUP_DIR).join("x.bak"), &roots));
+        // `..` leading back in from a sibling folder.
+        assert!(inside_any(&elsewhere.join("..").join("DarkSoulsII").join("DS2SOFS0000.sl2"), &roots));
+        assert!(!inside_any(&elsewhere.join("DS2SOFS0000.sl2"), &roots));
+        // A sibling whose name only starts like the root.
+        assert!(!inside_any(&base.join("DarkSoulsII-copy").join("DS2SOFS0000.sl2"), &roots));
+        if cfg!(windows) {
+            let shouted = PathBuf::from(root.to_string_lossy().to_uppercase()).join("DS2SOFS0000.sl2");
+            assert!(inside_any(&shouted, &roots));
+        }
+        fs::remove_dir_all(&base).unwrap();
     }
 }

@@ -5,7 +5,7 @@
 use std::path::Path;
 
 use ds2save::save::document::{self, FieldChange, Preview};
-use ds2save::save::SaveError;
+use ds2save::save::{disk, SaveError};
 use tauri::State;
 
 use crate::commands::{AppState, CmdResult};
@@ -45,7 +45,9 @@ fn json_path(path: &str) -> CmdResult<&Path> {
 
 #[tauri::command]
 pub async fn document_write_file(path: String, text: String) -> CmdResult<()> {
-    std::fs::write(json_path(&path)?, text)?;
+    let p = json_path(&path)?;
+    disk::ensure_writable(p)?;
+    std::fs::write(p, text)?;
     Ok(())
 }
 

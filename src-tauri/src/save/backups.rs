@@ -252,6 +252,7 @@ pub fn restore(backup: &Path, target: &Path) -> Result<Restored> {
 /// Deletes one backup, and nothing that isn't one.
 pub fn delete(backup: &Path) -> Result<()> {
     let backup = checked_backup(backup)?;
+    disk::ensure_writable(&backup)?;
     fs::remove_file(backup)?;
     Ok(())
 }

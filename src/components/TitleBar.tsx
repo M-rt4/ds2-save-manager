@@ -34,9 +34,13 @@ export function TitleBar() {
           DEV · {devLabel}
         </span>
       )}
-      {testRoot && (
-        <span className="test-badge" data-tauri-drag-region title={t('app.testFolderHint', { path: testRoot })}>
-          {t('app.testFolder')}
+      {(testRoot || devLabel) && (
+        <span
+          className="test-badge"
+          data-tauri-drag-region
+          title={[testRoot && t('app.testFolderHint', { path: testRoot }), devLabel && t('app.devDataHint')].filter(Boolean).join('\n\n')}
+        >
+          {testRoot ? t('app.testFolder') : t('app.devData')}
         </span>
       )}
       <div className="spacer" data-tauri-drag-region />
