@@ -1386,3 +1386,97 @@ select.field option:checked {
   background: #2c2820;
   color: #f1ebdb;
 }
+
+/* ---------- Backups ---------- */
+
+.backups-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  padding: 8px 22px 12px;
+}
+.backups-head .lead {
+  flex: 1;
+  max-width: 68ch;
+  margin: 0;
+  color: var(--ash);
+  font-size: 15.5px;
+}
+.backups-notes {
+  display: grid;
+  gap: 8px;
+  padding: 0 22px 8px;
+}
+.backups-count {
+  padding: 2px 22px 0;
+  color: var(--dim);
+  font-size: 14px;
+}
+.backups .group-label {
+  padding-left: 22px;
+}
+.backups-empty {
+  padding: 8px 22px;
+}
+.backup-row {
+  display: grid;
+  grid-template-columns: 74px minmax(0, 1fr) auto;
+  grid-template-areas:
+    'when why badge'
+    '. who size'
+    '. acts acts';
+  align-items: baseline;
+  gap: 1px 14px;
+  padding: 8px 22px;
+}
+.backup-row .when {
+  grid-area: when;
+  font-size: 16px;
+}
+.backup-row .why {
+  grid-area: why;
+  color: var(--ash);
+  font-size: 14.5px;
+}
+.backup-row .badge {
+  grid-area: badge;
+  justify-self: end;
+  margin-left: 0;
+}
+.backup-row .who {
+  grid-area: who;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--ash);
+  font-size: 14px;
+}
+.backup-row .who b {
+  font-weight: 400;
+  color: var(--bone);
+}
+.backup-row .who.bad {
+  color: #e8c0b4;
+}
+.backup-row .size {
+  grid-area: size;
+  justify-self: end;
+  color: var(--dim);
+  font-size: 14px;
+}
+.backup-row .acts {
+  grid-area: acts;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 2px;
+  cursor: default;
+}
+.backup-row .acts .why-not {
+  color: var(--dim);
+  font-size: 14px;
+}
+.btn.quiet.danger:hover:not(:disabled) {
+  color: var(--danger);
+}

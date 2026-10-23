@@ -7,6 +7,7 @@ use std::time::UNIX_EPOCH;
 
 use serde::Serialize;
 
+use super::backups::Reason;
 use super::crypto::md5;
 use super::edition::Edition;
 use super::error::{Result, SaveError};
@@ -87,8 +88,9 @@ pub fn fingerprint(bytes: &[u8]) -> [u8; 16] {
     md5(bytes)
 }
 
-/// Copies `path` into the backup folder next to it and returns the copy's path.
-pub fn backup(path: &Path) -> Result<Option<PathBuf>> {
+/// Copies `path` into the backup folder next to it as `<file>.<stamp>.<reason>.bak` and
+/// returns the copy's path.
+pub fn backup(path: &Path, reason: Reason) -> Result<Option<PathBuf>> {
     if !path.exists() {
         return Ok(None);
     }
@@ -96,10 +98,10 @@ pub fn backup(path: &Path) -> Result<Option<PathBuf>> {
     fs::create_dir_all(&dir)?;
     let stamp = chrono::Local::now().format("%Y%m%d-%H%M%S");
     let name = path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-    let mut target = dir.join(format!("{name}.{stamp}.bak"));
+    let mut target = dir.join(format!("{name}.{stamp}.{reason}.bak"));
     let mut n = 1;
     while target.exists() {
-        target = dir.join(format!("{name}.{stamp}-{n}.bak"));
+        target = dir.join(format!("{name}.{stamp}-{n}.{reason}.bak"));
         n += 1;
     }
     fs::copy(path, &target)?;

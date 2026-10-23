@@ -7,6 +7,7 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
+use ds2save::save::backups::Reason;
 use ds2save::save::character;
 use ds2save::save::disk;
 use ds2save::save::file::{SaveFile, HEADER_ENTRY, SLOT_COUNT};
@@ -390,7 +391,7 @@ pub async fn run_conversion(state: State<'_, AppState>, req: ConversionRequest) 
     }
     let base = if path.exists() { Some(read_save(&path)?.0) } else { None };
     let Built { out, mut changes, .. } = build(&source, &req, base.as_ref())?;
-    let (backup, fingerprint) = write_checked(&path, &out)?;
+    let (backup, fingerprint) = write_checked(&path, &out, Reason::Transfer)?;
     if let Some(b) = &backup {
         changes.push(Change::Backup { path: b.to_string_lossy().into_owned() });
     }
