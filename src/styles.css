@@ -2369,6 +2369,7 @@ body[data-pad] * {
 .osk-keys .key-pad .glyph {
   width: 15px;
   height: 15px;
+  color: inherit;
 }
 .osk-keys .key-pad .glyph.wide {
   width: 22px;
