@@ -98,6 +98,53 @@ pub fn linux_save_roots(home: &Path, steam_dirs: &[PathBuf], edition: Edition) -
     out
 }
 
+/// Where the game keeps saves on Linux or would make them, whether or not they exist yet:
+/// each release's whole Proton prefix in every Steam library, and the DarkSoulsII folder of
+/// every user of a plain Wine, Heroic or Lutris prefix. Development builds write inside none
+/// of them (`disk::ensure_writable`), so a first save in a prefix where the game has not saved
+/// yet is refused as well.
+pub fn linux_guard_roots(home: &Path, steam_dirs: &[PathBuf]) -> Vec<PathBuf> {
+    let mut out = Vec::new();
+    for steam in steam_dirs {
+        for library in steam_libraries(steam) {
+            for edition in Edition::ALL {
+                out.push(library.join("steamapps").join("compatdata").join(steam_app(edition).to_string()));
+            }
+        }
+    }
+    let mut prefixes = vec![home.join(".wine")];
+    for base in [home.join("Games").join("Heroic").join("Prefixes"), home.join("Games")] {
+        for dir in fs::read_dir(&base).into_iter().flatten().flatten() {
+            prefixes.push(dir.path().join("pfx"));
+            prefixes.push(dir.path());
+        }
+    }
+    for prefix in prefixes {
+        for user in fs::read_dir(prefix.join("drive_c").join("users")).into_iter().flatten().flatten() {
+            out.push(user.path().join("AppData").join("Roaming").join("DarkSoulsII"));
+        }
+    }
+    out
+}
+
+/// The home folder the user database lists for this user, which setting `HOME` doesn't change.
+#[cfg(unix)]
+pub fn passwd_home() -> Option<PathBuf> {
+    use std::ffi::{CStr, OsStr};
+    use std::os::unix::ffi::OsStrExt;
+    let mut buf: Vec<libc::c_char> = vec![0; 16 * 1024];
+    // SAFETY: getpwuid_r fills `pwd` with pointers into `buf`, which outlives every read of them.
+    unsafe {
+        let mut pwd: libc::passwd = std::mem::zeroed();
+        let mut found = std::ptr::null_mut();
+        if libc::getpwuid_r(libc::getuid(), &mut pwd, buf.as_mut_ptr(), buf.len(), &mut found) != 0 || found.is_null() || pwd.pw_dir.is_null() {
+            return None;
+        }
+        let dir = CStr::from_ptr(pwd.pw_dir).to_bytes();
+        (!dir.is_empty()).then(|| PathBuf::from(OsStr::from_bytes(dir)))
+    }
+}
+
 /// The values of every `"key" "value"` pair named `key` in a Valve KeyValues text
 /// (`libraryfolders.vdf`, `appmanifest_*.acf`), unescaped.
 pub fn vdf_values(text: &str, key: &str) -> Vec<String> {
@@ -185,6 +232,37 @@ mod tests {
         let canon_all = |v: Vec<PathBuf>| v.iter().map(|p| canon(p)).collect::<Vec<_>>();
         assert_eq!(canon_all(scholar), vec![canon(&scholar_on_card), canon(&heroic)]);
         assert_eq!(canon_all(original), vec![canon(&original_internal), canon(&heroic)]);
+        let _ = fs::remove_dir_all(&home);
+    }
+
+    #[test]
+    fn guards_save_folders_the_game_has_not_made_yet() {
+        let home = Path::new(env!("CARGO_MANIFEST_DIR")).join("target/test-scratch/linux-guard-home");
+        let _ = fs::remove_dir_all(&home);
+        let steam = home.join(".local/share/Steam");
+        let card = home.join("sdcard");
+        touch_dir(&steam.join("steamapps"));
+        fs::write(
+            steam.join("steamapps/libraryfolders.vdf"),
+            format!("\"libraryfolders\"\n{{\n\t\"0\"\n\t{{\n\t\t\"path\"\t\t\"{}\"\n\t}}\n}}\n", card.display().to_string().replace('\\', "\\\\")),
+        )
+        .unwrap();
+        // Scholar's prefix exists on the card but the game never saved there; a Lutris prefix
+        // has a user and no DarkSoulsII folder.
+        touch_dir(&card.join("steamapps/compatdata/335300/pfx/drive_c/users/steamuser/AppData/Roaming"));
+        touch_dir(&home.join("Games/ds2/drive_c/users/me"));
+
+        let dirs = linux_steam_dirs(&home);
+        assert!(linux_save_roots(&home, &dirs, Edition::Scholar).is_empty(), "no save folder exists yet");
+        let guarded = linux_guard_roots(&home, &dirs);
+        let first_save = card.join("steamapps/compatdata/335300/pfx/drive_c/users/steamuser/AppData/Roaming/DarkSoulsII/0110000100000666/DS2SOFS0000.sl2");
+        let lutris = home.join("Games/ds2/drive_c/users/me/AppData/Roaming/DarkSoulsII/0110000100000666/DARKSII0000.sl2");
+        // The install itself, as linux_steam_dirs gives it (canonical).
+        let original_internal = dirs[0].join("steamapps/compatdata/236430/pfx/drive_c/users/steamuser/AppData/Roaming/DarkSoulsII/x.sl2");
+        for target in [&first_save, &lutris, &original_internal] {
+            assert!(guarded.iter().any(|root| target.starts_with(root)), "{} is guarded", target.display());
+        }
+        assert!(!guarded.iter().any(|root| home.join("scratch/DS2SOFS0000.sl2").starts_with(root)));
         let _ = fs::remove_dir_all(&home);
     }
 

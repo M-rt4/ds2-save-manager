@@ -106,12 +106,17 @@ pub struct SaveView {
     slots: Vec<SlotView>,
     checksum_failures: Vec<usize>,
     dirty: bool,
+    /// Set when this build may not write the file back: a development build and a save inside
+    /// the game's real save folders. Edits in memory still work; saving does not.
+    read_only: bool,
+    read_only_reason: Option<SaveError>,
     size: usize,
     entries: Vec<EntryInfo>,
 }
 
 fn view(id: &str, doc: &Doc) -> SaveView {
     let save = &doc.save;
+    let read_only_reason = disk::ensure_writable(&doc.path).err();
     let folder = doc.path.parent().and_then(|p| p.file_name()).map(|f| f.to_string_lossy().into_owned()).unwrap_or_default();
     SaveView {
         id: id.to_string(),
@@ -126,6 +131,8 @@ fn view(id: &str, doc: &Doc) -> SaveView {
         slots: (0..SLOT_COUNT).map(|i| character::summary(save, i).into()).collect(),
         checksum_failures: save.checksum_failures(),
         dirty: doc.dirty,
+        read_only: read_only_reason.is_some(),
+        read_only_reason,
         size: save.raw().len(),
         entries: save
             .entries()

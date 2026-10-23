@@ -205,6 +205,10 @@ pub async fn plan_conversion(state: State<'_, AppState>, req: ConversionRequest)
             Err(e) => Some(e),
         }
     };
+    // A development build shows what would happen, but never writes into the real saves.
+    if let Err(e) = disk::ensure_writable(&path) {
+        plan.blocked = Some(e);
+    }
     Ok(plan)
 }
 
@@ -213,6 +217,7 @@ pub async fn run_conversion(state: State<'_, AppState>, req: ConversionRequest) 
     crate::commands::ensure_game_closed()?;
     let source = source_of(&state, &req.source_id)?;
     let path = PathBuf::from(&req.target_path);
+    disk::ensure_writable(&path)?;
     if state.changed_on_disk(&req.source_id) {
         return Err(source_changed());
     }

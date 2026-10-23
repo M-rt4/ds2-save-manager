@@ -70,7 +70,9 @@ export function BackupsTab({ doc }: { doc: SaveView }) {
 
   const expected = expectedEdition(doc);
   const blocked = (b: Backup): string | null =>
-    !b.readable
+    doc.readOnly
+      ? t('guard.readOnly')
+      : !b.readable
       ? t('backup.blockedUnreadable')
       : b.edition !== expected
         ? t('backup.blockedEdition', {
@@ -144,12 +146,13 @@ export function BackupsTab({ doc }: { doc: SaveView }) {
     <div className="panel-body backups">
       <div className="backups-head">
         <p className="lead">{t('backup.lead')}</p>
-        <button className="btn" disabled={working} onClick={() => void take()}>
+        <button className="btn" disabled={working || doc.readOnly} onClick={() => void take()}>
           {t('backup.take')}
         </button>
       </div>
-      {(gameRunning || changes) && (
+      {(gameRunning || changes || doc.readOnly) && (
         <div className="backups-notes">
+          {doc.readOnly && <div className="info">{t('guard.backupsReadOnly')}</div>}
           {gameRunning && <div className="info">{t('backup.gameNote')}</div>}
           {changes && <div className="info">{t('backup.unsavedNote')}</div>}
         </div>
@@ -207,7 +210,7 @@ export function BackupsTab({ doc }: { doc: SaveView }) {
                       <button className="btn quiet" data-external onClick={() => void revealItemInDir(b.path)}>
                         {t('file.reveal')}
                       </button>
-                      <button className="btn quiet danger" disabled={working} onClick={() => remove(b)}>
+                      <button className="btn quiet danger" disabled={working || doc.readOnly} onClick={() => remove(b)}>
                         {t('backup.delete')}
                       </button>
                       {why && <span className="why-not">{why}</span>}

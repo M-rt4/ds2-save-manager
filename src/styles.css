@@ -2218,10 +2218,14 @@ body[data-pad] .tab[data-pad-focus] {
   color: #f1ebdb;
   text-shadow: 0 0 12px rgba(236, 228, 206, 0.6);
 }
+/* Hints wrap to a second row rather than push the footer past a narrow window. */
 .pad-hints {
   display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   align-items: center;
-  gap: 16px;
+  gap: 2px 16px;
+  min-width: 0;
   color: var(--ash);
   font-size: 14.5px;
   white-space: nowrap;
@@ -2813,4 +2817,18 @@ body[data-pad] * {
 }
 .chg-fields .to {
   color: var(--raised);
+}
+
+/* ---------- Development builds: real saves are read-only ---------- */
+
+.footer .footer-status {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  white-space: nowrap;
+}
+.footer .guard-note {
+  padding-left: 17px;
+  color: #e8a46a;
+  font-size: 12px;
 }

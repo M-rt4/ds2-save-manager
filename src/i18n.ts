@@ -471,7 +471,10 @@ const en = {
   'invchg.field.reinforcement': 'Reinforcement',
   'invchg.field.infusion': 'Infusion',
   'invchg.field.charges': 'Charges',
-  'invchg.field.bytes': 'Other bytes'
+  'invchg.field.bytes': 'Other bytes',
+
+  'guard.readOnly': 'Development build: the real save is read-only',
+  'guard.backupsReadOnly': 'This save is in the game\'s real save folder. A development build reads it and its backups, but takes, restores and deletes none; the released app does.'
 } as const;
 
 export type Key = keyof typeof en;
@@ -944,7 +947,10 @@ const tr: Record<Key, string> = {
   'invchg.field.reinforcement': 'Güçlendirme',
   'invchg.field.infusion': 'Infusion',
   'invchg.field.charges': 'Dolum',
-  'invchg.field.bytes': 'Diğer baytlar'
+  'invchg.field.bytes': 'Diğer baytlar',
+
+  'guard.readOnly': 'Geliştirme sürümü: gerçek kayıt salt okunur',
+  'guard.backupsReadOnly': 'Bu kayıt oyunun gerçek kayıt klasöründe. Geliştirme sürümü onu ve yedeklerini okur ama yedek almaz, geri yüklemez, silmez; bunları yayımlanan sürüm yapar.'
 };
 
 export type Lang = 'tr' | 'en';

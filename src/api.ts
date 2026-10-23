@@ -60,6 +60,9 @@ export interface SaveView {
   slots: SlotView[];
   checksumFailures: number[];
   dirty: boolean;
+  /** A development build never writes a save in the game's real folders; edits in memory still work. */
+  readOnly: boolean;
+  readOnlyReason: SaveError | null;
   size: number;
   entries: EntryInfo[];
 }

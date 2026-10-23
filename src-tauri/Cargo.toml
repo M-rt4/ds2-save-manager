@@ -1,6 +1,6 @@
 [package]
 name = "ds2-save-manager"
-version = "0.6.0"
+version = "0.6.1"
 description = "Dark Souls II save manager: edit, convert and transfer saves between the original game and Scholar of the First Sin."
 authors = ["Mert"]
 edition = "2021"
@@ -41,6 +41,10 @@ gilrs = "0.11"
 gilrs = { version = "0.11", default-features = false, features = ["xinput"] }
 winreg = "0.56"
 windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging"] }
+dirs = "7"
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
 
 [profile.release]
 codegen-units = 1

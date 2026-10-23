@@ -244,6 +244,11 @@ export const useStore = create<State>((set, get) => ({
   saveChanges: async () => {
     const { doc, slot, character, draft } = get();
     if (!doc) return;
+    // Ctrl S and the pad's Start end up here too: say why instead of failing at the write.
+    if (doc.readOnly) {
+      get().toast(get().t('guard.readOnly'), 'error');
+      return;
+    }
     set({ busy: true });
     try {
       if (character && draft && slot !== null) {
