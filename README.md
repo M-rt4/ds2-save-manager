@@ -85,6 +85,7 @@ pwsh scripts/portable.ps1   # Windows: build'den sonra taşınabilir zip
 Sürüm çıkarmak:
 
 - Sürüm yalnızca `package.json`'da tutulur; `node scripts/version.mjs minor` (yeni özellik) ya da `patch` (yalnızca düzeltme) onu `Cargo.toml` ve kilit dosyalarıyla birlikte artırır. `tauri.conf.json` sürümü `package.json`'dan okur.
+- Her özellik kendi sürümünü alır ([anlamsal sürümleme](https://semver.org/lang/tr/)): main'e giren her yeni özellik MINOR'u, her düzeltme PATCH'i artırır. Sürüm numarası ve notları aynı birleştirmeyle gelir.
 - Sürüm notları `changelog/<sürüm>.tr.md` ve `.en.md` dosyalarına yazılır.
 - GitHub'da **Actions → Release → Run workflow** (ya da bir `v<sürüm>` etiketi) Windows kurulum paketini, taşınabilir zip'i ve AppImage'ı üretip notlarla birlikte **taslak** bir sürüme yükler. Taslağı yayınlamak etiketi oluşturur.
 
