@@ -184,9 +184,14 @@ export const useStore = create<State>((set, get) => ({
       try {
         const doc = await api.openSave(path);
         if (current && doc.id === current.id) {
-          // The save already open (picked again, by any spelling of its path): the backend kept
-          // its unsaved edits, and the character and its Status draft stay as they are.
+          // The save already open, picked again by any spelling of its path. With unsaved
+          // edits the backend kept them, and the character on screen is still the one being
+          // edited. Otherwise the file was read afresh (the game may have written it since),
+          // so the character is read again too: a draft of the old one would carry its old
+          // values back over the game's.
           set({ doc });
+          const slot = get().slot;
+          if (!doc.dirty && slot !== null) await get().selectSlot(slot);
           return;
         }
         if (current) await api.closeSave(current.id).catch(() => undefined);
@@ -199,7 +204,10 @@ export const useStore = create<State>((set, get) => ({
         set({ busy: false });
       }
     };
-    if (current && current.path !== path && hasChanges(get())) {
+    // Asked first whenever unsaved work would go: another save, or this one read afresh while
+    // only a Status draft (which the backend does not hold) is pending.
+    const kept = current?.path === path && current.dirty;
+    if (current && hasChanges(get()) && !kept) {
       get().ask(get().t('confirm.discard', { file: current.fileName }), () => void go());
     } else {
       await go();

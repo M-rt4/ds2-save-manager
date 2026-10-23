@@ -100,8 +100,9 @@ export function TransferTab({ doc }: { doc: SaveView }) {
     store.ask(question, async () => {
       setRunning(true);
       try {
-        // The character moves as it stands here, Status edits not yet saved included.
-        await store.commitDraft();
+        // The character moves as it stands here, Status edits not yet saved included. Not when
+        // copying within this same file: the backend refuses a target with unsaved edits.
+        if (norm(targetPath) !== norm(doc.path)) await store.commitDraft();
         const report = await api.runConversion(request);
         setGeneration((g) => g + 1);
         await store.refreshSaves();
