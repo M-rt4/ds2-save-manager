@@ -1,4 +1,4 @@
-//! Gamepads, read natively with gilrs (Windows.Gaming.Input on Windows, evdev on Linux and the
+//! Gamepads, read natively with gilrs (XInput on Windows, evdev on Linux and the
 //! Steam Deck, Steam Input's virtual pad included) and handed to the UI as `gamepad` events.
 //! Nothing is sent while the app is not the window in front, so a pad held for the game never
 //! drives the app behind it. The UI turns the events into focus moves and actions (src/pad.ts).
