@@ -61,6 +61,14 @@ export interface Toast {
   tone: 'info' | 'error';
 }
 
+/** Text being edited in the JSON view, kept while the user is on other tabs. */
+export interface JsonDraft {
+  docId: string;
+  /** The document as exported when editing began. */
+  base: string;
+  text: string;
+}
+
 interface Confirm {
   text: string;
   onYes: () => void;
@@ -85,6 +93,7 @@ interface State {
   report: TransferReportView | null;
   games: GameInfo[];
   gamesLoaded: boolean;
+  jsonDraft: JsonDraft | null;
 
   setLang: (lang: Lang) => void;
   t: (key: Key, vars?: Record<string, string | number>) => string;
@@ -112,6 +121,7 @@ interface State {
   setGames: (games: GameInfo[]) => void;
   addGameFolder: (dir: string) => Promise<void>;
   removeGameFolder: (dir: string) => Promise<void>;
+  setJsonDraft: (draft: JsonDraft | null) => void;
 }
 
 export function draftOf(c: CharacterView): Draft {
@@ -151,6 +161,7 @@ export const useStore = create<State>((set, get) => ({
   report: null,
   games: [],
   gamesLoaded: false,
+  jsonDraft: null,
 
   setLang: (lang) => {
     try {
@@ -195,7 +206,8 @@ export const useStore = create<State>((set, get) => ({
           return;
         }
         if (current) await api.closeSave(current.id).catch(() => undefined);
-        set({ doc, slot: null, character: null, draft: null });
+        // Text being edited in the JSON view belonged to the save that just closed.
+        set({ doc, slot: null, character: null, draft: null, jsonDraft: null });
         const pick = doc.slots.find((s) => s.slot === doc.lastSlot && s.occupied) ?? doc.slots.find((s) => s.occupied);
         if (pick) await get().selectSlot(pick.slot);
       } catch (e) {
@@ -205,10 +217,14 @@ export const useStore = create<State>((set, get) => ({
       }
     };
     // Asked first whenever unsaved work would go: another save, or this one read afresh while
-    // only a Status draft (which the backend does not hold) is pending.
+    // only a Status draft (which the backend does not hold) is pending; and text edited in the
+    // JSON view when another save opens.
     const kept = current?.path === path && current.dirty;
-    if (current && hasChanges(get()) && !kept) {
-      get().ask(get().t('confirm.discard', { file: current.fileName }), () => void go());
+    const changes = !!current && hasChanges(get()) && !kept;
+    const json = get().jsonDraft;
+    const jsonEdited = !!current && current.path !== path && json?.docId === current.id && json.text !== json.base;
+    if (current && (changes || jsonEdited)) {
+      get().ask(get().t(changes ? 'confirm.discard' : 'confirm.discardJson', { file: current.fileName }), () => void go());
     } else {
       await go();
     }
@@ -349,6 +365,7 @@ export const useStore = create<State>((set, get) => ({
       else get().fail(e);
     }
   },
+  setJsonDraft: (jsonDraft) => set({ jsonDraft }),
   removeGameFolder: async (dir) => {
     try {
       set({ games: await gamesApi.removeGameFolder(dir), gamesLoaded: true });

@@ -28,6 +28,13 @@ useStore.subscribe((s, prev) => {
 // per `${doc id}#${block}`. Kept outside the component so leaving the tab keeps them.
 const changed = new Map<string, Map<number, number | undefined>>();
 
+// A clean copy of a save (written, discarded, restored, opened again) differs from the file
+// nowhere, so its marks go, on whichever tab that happened.
+useStore.subscribe((s, prev) => {
+  if (!s.doc || s.doc === prev.doc || s.doc.dirty) return;
+  for (const k of [...changed.keys()]) if (k.startsWith(`${s.doc.id}#`)) changed.delete(k);
+});
+
 const hex = (n: number, width = 2) => n.toString(16).toUpperCase().padStart(width, '0');
 
 function blockLabel(e: EntryInfo, doc: SaveView, t: T): string {
@@ -55,13 +62,10 @@ function parseHexBytes(s: string): number[] | null {
   return out.length ? out : null;
 }
 
-/** `0x3C0` and `3C0h` are hex, plain digits decimal, anything with a-f hex. */
+/** Hex, like every offset the tab shows: `3C0`, `0x3C0` or `3C0h`. */
 function parseOffset(s: string): number | null {
-  const v = s.trim();
-  if (/^0x[0-9a-f]+$/i.test(v)) return parseInt(v.slice(2), 16);
-  if (/^[0-9]+$/.test(v)) return parseInt(v, 10);
-  if (/^[0-9a-f]+h?$/i.test(v)) return parseInt(v.replace(/h$/i, ''), 16);
-  return null;
+  const v = s.trim().replace(/^0x/i, '').replace(/h$/i, '');
+  return /^[0-9a-f]+$/i.test(v) ? parseInt(v, 16) : null;
 }
 
 const utf16 = (text: string) => [...text].flatMap((ch) => {
@@ -193,8 +197,6 @@ function RawEditor({ doc }: { doc: SaveView }) {
   const chunks = entry?.chunks ?? [];
   const key = `${doc.id}#${index}`;
 
-  // Once the save is written or reloaded, nothing here differs from the file any more.
-  if (!doc.dirty) for (const k of [...changed.keys()]) if (k.startsWith(`${doc.id}#`)) changed.delete(k);
   const changedHere = changed.get(key);
 
   // Pages of the block as read for this version of the doc; any change to it reads again.

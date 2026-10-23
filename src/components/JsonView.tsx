@@ -30,8 +30,16 @@ export function JsonView({ doc }: { doc: SaveView }) {
   const ask = useStore((s) => s.ask);
   const setDoc = useStore((s) => s.setDoc);
   const selectSlot = useStore((s) => s.selectSlot);
-  const [base, setBase] = useState<string | null>(null);
-  const [text, setText] = useState('');
+  const setJsonDraft = useStore((s) => s.setJsonDraft);
+  // Text edited on an earlier visit to this tab comes back.
+  const kept = (() => {
+    const d = useStore.getState().jsonDraft;
+    return d?.docId === doc.id && d.text !== d.base ? d : null;
+  })();
+  const [base, setBase] = useState<string | null>(kept?.base ?? null);
+  const [text, setText] = useState(kept?.text ?? '');
+  // The save the text was loaded from; until a newly opened one's is in, nothing is kept.
+  const loadedFor = useRef<string | null>(kept ? doc.id : null);
   const [preview, setPreview] = useState<DocPreview | null>(null);
   const [checking, setChecking] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -50,6 +58,7 @@ export function JsonView({ doc }: { doc: SaveView }) {
         await selectSlot(st.slot);
       }
       const fresh = await documentApi.exportText(doc.id);
+      loadedFor.current = doc.id;
       setBase(fresh);
       setText(fresh);
       setPreview(null);
@@ -60,10 +69,24 @@ export function JsonView({ doc }: { doc: SaveView }) {
   };
 
   useEffect(() => {
+    if (kept) {
+      // Say so if the save moved on while the text waited.
+      void documentApi
+        .exportText(doc.id)
+        .then((fresh) => fresh !== kept.base && setStale(true))
+        .catch(() => undefined);
+      return;
+    }
+    loadedFor.current = null;
     setBase(null);
     void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [doc.id]);
+
+  // Kept in the store, so leaving the tab keeps the text and opening another file asks first.
+  useEffect(() => {
+    if (base !== null && loadedFor.current === doc.id) setJsonDraft({ docId: doc.id, base, text });
+  }, [base, text, doc.id, setJsonDraft]);
 
   // The save changed elsewhere (written, discarded, edited in another tab): follow it, unless
   // there are edits here to keep.
@@ -77,6 +100,8 @@ export function JsonView({ doc }: { doc: SaveView }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [doc]);
 
+  // Checked again whenever the save changes too, so the list (and the count Apply confirms)
+  // is what applying the text does to the save as it is now.
   useEffect(() => {
     if (base === null || text === base) {
       setPreview(null);
@@ -96,7 +121,7 @@ export function JsonView({ doc }: { doc: SaveView }) {
       live = false;
       clearTimeout(timer);
     };
-  }, [text, base, doc.id, fail]);
+  }, [text, base, doc, fail]);
 
   const lines = useMemo(() => text.split('\n'), [text]);
   const applying = preview?.changes.filter((c) => c.applies) ?? [];

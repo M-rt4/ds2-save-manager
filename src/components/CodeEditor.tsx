@@ -149,6 +149,8 @@ export function CodeEditor({
   const [scroll, setScroll] = useState({ top: 0, left: 0 });
   const [height, setHeight] = useState(400);
   const caret = useRef<number | null>(null);
+  // The selection an edit replaces, in the shown text, taken just before the browser applies it.
+  const selection = useRef<[number, number]>([0, 0]);
 
   const lines = useMemo(() => value.split('\n'), [value]);
   const starts = useMemo(() => {
@@ -174,7 +176,12 @@ export function CodeEditor({
     if (!el) return;
     const ro = new ResizeObserver(() => setHeight(el.clientHeight));
     ro.observe(el);
-    return () => ro.disconnect();
+    const before = () => (selection.current = [el.selectionStart, el.selectionEnd]);
+    el.addEventListener('beforeinput', before);
+    return () => {
+      ro.disconnect();
+      el.removeEventListener('beforeinput', before);
+    };
   }, []);
 
   useLayoutEffect(() => {
@@ -225,15 +232,31 @@ export function CodeEditor({
   }, [jump]);
 
   const edit = (next: string) => {
+    let [a, b] = selection.current;
+    selection.current = [0, 0];
     if (!shown.holes.length) return onChange(next);
     const prev = shown.text;
-    const max = Math.min(prev.length, next.length);
-    let p = 0;
-    while (p < max && prev.charCodeAt(p) === next.charCodeAt(p)) p++;
-    let s = 0;
-    while (s < max - p && prev.charCodeAt(prev.length - 1 - s) === next.charCodeAt(next.length - 1 - s)) s++;
-    const [a, b] = [p, prev.length - s];
-    const hit = shown.holes.find((h) => (a < h.v1 && b > h.v0) || (a === b && a > h.v0 && a < h.v1));
+    // The range that changed: the selection when it was replaced as a whole (select all and
+    // paste, a selection typed over or deleted), otherwise what differs.
+    const replaced = (x: number, y: number) => next.slice(x, next.length - (prev.length - y));
+    const whole =
+      b > a &&
+      next.length >= prev.length - (b - a) &&
+      next.startsWith(prev.slice(0, a)) &&
+      next.endsWith(prev.slice(b)) &&
+      !/⋯ \d+ ⋯/.test(replaced(a, b));
+    if (!whole) {
+      const max = Math.min(prev.length, next.length);
+      let p = 0;
+      while (p < max && prev.charCodeAt(p) === next.charCodeAt(p)) p++;
+      let s = 0;
+      while (s < max - p && prev.charCodeAt(prev.length - 1 - s) === next.charCodeAt(next.length - 1 - s)) s++;
+      [a, b] = [p, prev.length - s];
+    }
+    // A change over a whole folded range and more replaces what it hides; one that only
+    // touches its mark (typing into it) opens it instead.
+    const covers = (h: Hole) => a <= h.v0 && b >= h.v1 && b - a > h.v1 - h.v0;
+    const hit = shown.holes.find((h) => !covers(h) && ((a < h.v1 && b > h.v0) || (a === b && a > h.v0 && a < h.v1)));
     if (hit) {
       caret.current = starts[hit.line] + lines[hit.line].length;
       const rest = new Set(folds);
@@ -242,12 +265,13 @@ export function CodeEditor({
       return;
     }
     const [m0, m1] = [toFull(shown, a), toFull(shown, b)];
-    const inserted = next.slice(p, next.length - s);
+    const inserted = replaced(a, b);
     const count = (t: string) => t.split('\n').length - 1;
     const delta = count(inserted) - count(value.slice(m0, m1));
-    if (delta) {
+    const gone = new Set(shown.holes.filter(covers).map((h) => h.line));
+    if (delta || gone.size) {
       const at = lineOfFull(m0);
-      setFolds(new Set([...folds].map((f) => (f > at ? f + delta : f))));
+      setFolds(new Set([...folds].filter((f) => !gone.has(f)).map((f) => (f > at ? f + delta : f))));
     }
     onChange(value.slice(0, m0) + inserted + value.slice(m1));
   };
