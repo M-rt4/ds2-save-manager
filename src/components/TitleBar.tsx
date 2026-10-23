@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { useStore } from '../store';
 import { useT } from '../i18n';
 import { Bonfire } from './icons';
+import { AboutDialog } from './AboutDialog';
 
 const win = () => getCurrentWindow();
 
@@ -9,6 +11,7 @@ export function TitleBar() {
   const t = useT();
   const lang = useStore((s) => s.lang);
   const setLang = useStore((s) => s.setLang);
+  const [about, setAbout] = useState(false);
 
   return (
     <header className="titlebar" data-tauri-drag-region>
@@ -20,6 +23,10 @@ export function TitleBar() {
         {t('app.subtitle')}
       </span>
       <div className="spacer" data-tauri-drag-region />
+      <button className="lang" onClick={() => setAbout(true)}>
+        {t('about.open')}
+      </button>
+      {about && <AboutDialog onClose={() => setAbout(false)} />}
       <button className="lang" onClick={() => setLang(lang === 'tr' ? 'en' : 'tr')}>
         {t('lang.switch')}
       </button>

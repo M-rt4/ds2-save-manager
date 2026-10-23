@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "The main window: its own chrome (drag, minimize, maximize, close), file dialogs, and revealing files in Explorer.",
+  "description": "The main window: its own chrome (drag, minimize, maximize, close), file dialogs, revealing files in Explorer, and opening the GitHub links of the About view.",
   "windows": ["main"],
   "permissions": [
     "core:default",
@@ -12,6 +12,10 @@
     "core:window:allow-close",
     "dialog:allow-open",
     "dialog:allow-save",
-    "opener:allow-reveal-item-in-dir"
+    "opener:allow-reveal-item-in-dir",
+    {
+      "identifier": "opener:allow-open-url",
+      "allow": [{ "url": "https://github.com/*" }]
+    }
   ]
 }

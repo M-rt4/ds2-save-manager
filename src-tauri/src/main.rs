@@ -1,6 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod commands;
+mod commands_about;
 mod commands_games;
 
 use tauri::{WebviewUrl, WebviewWindowBuilder};
@@ -48,6 +49,7 @@ fn main() {
             commands_games::list_games,
             commands_games::add_game_folder,
             commands_games::remove_game_folder,
+            commands_about::system_info,
         ])
         .run(tauri::generate_context!())
         .expect("error while running DS2 Save Manager");

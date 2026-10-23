@@ -1260,3 +1260,105 @@ button.place:hover {
   font-weight: 400;
   color: var(--ash);
 }
+
+/* ---------- About ---------- */
+
+.dialog.about {
+  height: min(720px, calc(100vh - 80px));
+}
+.about-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 26px 0;
+}
+.about-mark {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 19px;
+  letter-spacing: 0.2em;
+  color: #e9e3d3;
+}
+.about-mark span {
+  margin-left: 8px;
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 17px;
+  letter-spacing: 0;
+  color: var(--ash);
+}
+.about-version {
+  color: var(--ash);
+  font-size: 15px;
+}
+.about-rule {
+  margin: 14px 20px 0;
+}
+.about-lead {
+  margin: 0 0 14px;
+  max-width: 64ch;
+  color: var(--bone);
+  font-size: 16px;
+}
+.about-h {
+  margin: 24px 0 4px;
+  font-size: 17px;
+  font-weight: 500;
+  color: #ebe5d5;
+}
+.about-game {
+  margin-top: 10px;
+}
+.about-game-name {
+  padding: 4px 0;
+  font-size: 16px;
+  color: #ebe5d5;
+}
+.about-game-name.scholar {
+  color: #ecd3a2;
+}
+.about .kv {
+  grid-template-columns: 170px minmax(0, 1fr);
+  font-size: 15px;
+}
+.about .kv .v {
+  word-break: normal;
+  overflow-wrap: anywhere;
+}
+.about .dim {
+  color: var(--dim);
+}
+.link {
+  padding: 0;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  color: var(--bone);
+  cursor: pointer;
+}
+.link:hover {
+  border-bottom-color: var(--line-strong);
+  color: #f1ebdb;
+}
+.credits {
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 15px;
+}
+.credits li {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line-faint);
+}
+.credits .what {
+  display: block;
+  color: var(--ash);
+  font-size: 14px;
+}
+.about .note {
+  max-width: 72ch;
+}
+.about .choices {
+  padding: 10px 20px 14px;
+  border-top: 1px solid var(--line-faint);
+}
