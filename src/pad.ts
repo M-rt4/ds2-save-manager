@@ -229,7 +229,9 @@ function nearest(from: HTMLElement, dir: Dir): HTMLElement | null {
       if (panelOf(el) !== home && !el.closest('.main > .panel')) continue;
       if (across === 0) across = Math.abs(a.top + a.height / 2 - (b.top + b.height / 2)) / 8;
     }
-    const score = Math.max(0, along) + across * 3 + (panelOf(el) === home ? 0 : 4000);
+    // A row's own controls in that direction come first: down from a picked backup reaches
+    // its Restore before the next backup.
+    const score = Math.max(0, along) + across * 3 + (panelOf(el) === home ? 0 : 4000) - (from.contains(el) ? 2000 : 0);
     if (score < bestScore) {
       bestScore = score;
       best = el;

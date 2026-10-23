@@ -53,7 +53,8 @@ export function FileTab({ doc }: { doc: SaveView }) {
         </div>
       )}
 
-      <FitToGame doc={doc} />
+      {/* Keyed by file: a plan checked for one save never shows for another. */}
+      <FitToGame key={doc.id} doc={doc} />
 
       <h3 style={{ margin: '22px 0 2px', fontWeight: 400, fontStyle: 'normal', color: 'var(--ash)', fontSize: 15 }}>
         {t('file.entries')}
@@ -137,7 +138,8 @@ function FitToGame({ doc }: { doc: SaveView }) {
         store.setDoc(await api.getSave(doc.id));
         if (store.slot !== null) await store.selectSlot(store.slot);
         await store.refreshSaves();
-        setPlan(null);
+        // Check the written file again: it now reads "already matches" instead of the old plan.
+        setPlan(await api.planConversion(request));
         if (useStore.getState().settings.showTransferReport) store.showReport({ path: report.path, changes: report.changes });
         else store.toast(t('transfer.done', { path: report.path }));
       } catch (e) {

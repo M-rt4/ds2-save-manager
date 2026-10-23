@@ -64,10 +64,20 @@ fn run(app: &AppHandle, focused: &AtomicBool, pads: &Mutex<Vec<PadInfo>>) {
         Err(gilrs::Error::NotImplemented(g)) => g,
         Err(_) => return,
     };
-    let list = |g: &Gilrs| g.gamepads().map(|(_, pad)| info(&pad)).collect::<Vec<_>>();
+    let skip = Ignored::from_env();
+    // Physical pads first: their glyphs, not those of Steam's stand-in, describe the buttons.
+    let list = |g: &Gilrs| {
+        let mut all: Vec<_> = g.gamepads().map(|(_, pad)| (is_steam_virtual(&pad), info(&pad))).collect();
+        all.sort_by_key(|(virtual_pad, _)| *virtual_pad);
+        all.into_iter().map(|(_, info)| info).collect::<Vec<_>>()
+    };
     *pads.lock().unwrap() = list(&gilrs);
     loop {
         let Some(event) = gilrs.next_event_blocking(Some(Duration::from_millis(500))) else { continue };
+        let is_input = !matches!(event.event, EventType::Connected | EventType::Disconnected);
+        if is_input && skip.covers(&gilrs.gamepad(event.id)) {
+            continue;
+        }
         let out = match event.event {
             EventType::Connected | EventType::Disconnected => {
                 let now = list(&gilrs);
@@ -123,6 +133,55 @@ fn axis(a: Axis) -> Option<&'static str> {
 const SONY: u16 = 0x054C;
 const VALVE: u16 = 0x28DE;
 const STEAM_DECK: u16 = 0x1205;
+/// The Xbox 360-style pad Steam Input creates for each controller it manages.
+const STEAM_VIRTUAL: u16 = 0x11FF;
+
+fn is_steam_virtual(pad: &Gamepad<'_>) -> bool {
+    pad.vendor_id() == Some(VALVE) && pad.product_id() == Some(STEAM_VIRTUAL)
+}
+
+/// The pads a game should leave alone. When Steam Input manages a controller, Steam hands games
+/// a virtual pad for it and lists the physical one in SDL's ignore variables; gilrs reads every
+/// device regardless, so without this each press would arrive twice (once from each).
+#[derive(Default)]
+struct Ignored {
+    ignore: Vec<(u16, u16)>,
+    only: Option<Vec<(u16, u16)>>,
+}
+
+impl Ignored {
+    fn from_env() -> Self {
+        Self { ignore: sdl_ids("SDL_GAMECONTROLLER_IGNORE_DEVICES").unwrap_or_default(), only: sdl_ids("SDL_GAMECONTROLLER_IGNORE_DEVICES_EXCEPT") }
+    }
+
+    fn covers(&self, pad: &Gamepad<'_>) -> bool {
+        let (Some(v), Some(p)) = (pad.vendor_id(), pad.product_id()) else { return false };
+        match &self.only {
+            Some(only) => !only.contains(&(v, p)),
+            None => self.ignore.contains(&(v, p)),
+        }
+    }
+}
+
+/// An SDL device list from the environment: `0xAAAA/0xBBBB,0xCCCC/0xDDDD`, or `@file` holding one.
+fn sdl_ids(var: &str) -> Option<Vec<(u16, u16)>> {
+    let raw = std::env::var(var).ok()?;
+    let text = match raw.strip_prefix('@') {
+        Some(file) => std::fs::read_to_string(file).ok()?,
+        None => raw,
+    };
+    Some(parse_ids(&text))
+}
+
+fn parse_ids(text: &str) -> Vec<(u16, u16)> {
+    let hex = |s: &str| u16::from_str_radix(s.trim().trim_start_matches("0x").trim_start_matches("0X"), 16).ok();
+    text.split(',')
+        .filter_map(|pair| {
+            let (v, p) = pair.split_once('/')?;
+            Some((hex(v)?, hex(p)?))
+        })
+        .collect()
+}
 
 fn info(pad: &Gamepad<'_>) -> PadInfo {
     let name = pad.name().to_string();
@@ -138,4 +197,16 @@ fn info(pad: &Gamepad<'_>) -> PadInfo {
         "xbox"
     };
     PadInfo { name, family }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::parse_ids;
+
+    #[test]
+    fn reads_sdl_device_lists() {
+        assert_eq!(parse_ids("0x28DE/0x1205,0x045e/0x028E"), [(0x28DE, 0x1205), (0x045E, 0x028E)]);
+        assert_eq!(parse_ids(" 0x054C/0x0CE6 , junk, 0x1/"), [(0x054C, 0x0CE6)]);
+        assert!(parse_ids("").is_empty());
+    }
 }
