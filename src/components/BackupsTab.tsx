@@ -24,6 +24,7 @@ export function BackupsTab({ doc }: { doc: SaveView }) {
   const t = useT();
   const lang = useStore((s) => s.lang);
   const gameRunning = useStore((s) => s.gameRunning);
+  const gameUnknown = useStore((s) => s.gameUnknown);
   const slot = useStore((s) => s.slot);
   const ask = useStore((s) => s.ask);
   const toast = useStore((s) => s.toast);
@@ -81,7 +82,9 @@ export function BackupsTab({ doc }: { doc: SaveView }) {
           })
         : gameRunning
           ? t('backup.blockedGame')
-          : null;
+          : gameUnknown
+            ? t('footer.gameUnknown')
+            : null;
 
   const groups: [number, Backup[]][] = [];
   for (const b of list ?? []) {
@@ -150,10 +153,11 @@ export function BackupsTab({ doc }: { doc: SaveView }) {
           {t('backup.take')}
         </button>
       </div>
-      {(gameRunning || changes || doc.readOnly) && (
+      {(gameRunning || gameUnknown || changes || doc.readOnly) && (
         <div className="backups-notes">
           {doc.readOnly && <div className="info">{t('guard.backupsReadOnly')}</div>}
           {gameRunning && <div className="info">{t('backup.gameNote')}</div>}
+          {gameUnknown && <div className="info">{t('footer.gameUnknown')}</div>}
           {changes && <div className="info">{t('backup.unsavedNote')}</div>}
         </div>
       )}

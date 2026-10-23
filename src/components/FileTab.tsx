@@ -173,7 +173,7 @@ function FitToGame({ doc }: { doc: SaveView }) {
           <>
             <ChangeList changes={changes} extra={[t('transfer.backupFirst', { file: doc.fileName })]} />
             <div className="go">
-              <button className="btn ember" disabled={busy || store.gameRunning} onClick={run}>
+              <button className="btn ember" disabled={busy || store.gameRunning || store.gameUnknown} onClick={run}>
                 {t('file.fitRun', { file: doc.fileName })}
               </button>
             </div>

@@ -116,6 +116,7 @@ const en = {
   'footer.unsaved': 'Unsaved changes',
   'footer.saved': 'All changes saved',
   'footer.gameRunning': 'Dark Souls II is running. Saving is disabled until you quit to the desktop.',
+  'footer.gameUnknown': 'Could not check whether Dark Souls II is running. Saving is disabled until it can be checked.',
   'footer.backupNote': 'Every write keeps a backup of the previous file.',
 
 
@@ -593,6 +594,7 @@ const tr: Record<Key, string> = {
   'footer.unsaved': 'Kaydedilmemiş değişiklikler var',
   'footer.saved': 'Tüm değişiklikler kaydedildi',
   'footer.gameRunning': 'Dark Souls II açık. Masaüstüne çıkana kadar kaydetme kapalı.',
+  'footer.gameUnknown': 'Oyunun açık olup olmadığı denetlenemedi. Denetlenebilene kadar kaydetme kapalı.',
   'footer.backupNote': 'Her yazmada önceki dosyanın yedeği saklanır.',
 
 

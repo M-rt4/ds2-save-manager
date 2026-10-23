@@ -26,7 +26,7 @@ export function App() {
         e.preventDefault();
         const s = useStore.getState();
         const pending = s.doc?.dirty || (s.character && s.draft && draftEdit(s.character, s.draft));
-        if (pending && !s.gameRunning && !s.busy) void s.saveChanges();
+        if (pending && !s.gameRunning && !s.gameUnknown && !s.busy) void s.saveChanges();
       }
     };
     window.addEventListener('keydown', onKey);
