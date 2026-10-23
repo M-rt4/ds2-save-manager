@@ -60,7 +60,7 @@ fn main() {
                 // Should the page never get that far, the window still appears.
                 std::thread::spawn(move || {
                     std::thread::sleep(std::time::Duration::from_secs(3));
-                    if !window.is_visible().unwrap_or(true) {
+                    if !window.is_visible().unwrap_or(false) {
                         let _ = window.show();
                     }
                 });

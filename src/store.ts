@@ -179,23 +179,24 @@ export const useStore = create<State>((set, get) => ({
       const boot = get().boot;
       if (boot) set({ boot: { ...boot, ...patch } });
     };
-    // Both scans at once: finding the installs (and reading their versions) is the slow one.
-    await Promise.all([
-      gamesApi
-        .listGames()
-        .catch(() => [] as GameInfo[])
-        .then((games) => {
-          set({ games, gamesLoaded: true });
-          step({ games: 'done' });
-        }),
-      api
-        .listSaves()
-        .catch(() => [] as FoundSave[])
-        .then((saves) => {
-          set({ saves, savesLoaded: true });
-          step({ saves: 'done' });
-        })
-    ]);
+    // Both scans at once. Finding the installs (and reading their versions) is the slow one,
+    // and a Steam library on a dead network or USB drive can hold it up for long: the screen
+    // waits for it only so long, and the Games panel fills in whenever it arrives.
+    const games = gamesApi
+      .listGames()
+      .catch(() => [] as GameInfo[])
+      .then((games) => {
+        set({ games, gamesLoaded: true });
+        step({ games: 'done' });
+      });
+    const saves = api
+      .listSaves()
+      .catch(() => [] as FoundSave[])
+      .then((saves) => {
+        set({ saves, savesLoaded: true });
+        step({ saves: 'done' });
+      });
+    await Promise.all([saves, Promise.race([games, new Promise((r) => setTimeout(r, 4000))])]);
     const first = get().saves[0];
     step({ open: first ? 'active' : 'none' });
     if (first) {
