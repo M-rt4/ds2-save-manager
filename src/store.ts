@@ -21,9 +21,11 @@ export type Tab = 'status' | 'inventory' | 'transfer' | 'file' | 'backups' | 'ra
 export interface Settings {
   /** Show the "what changed" summary after a transfer. */
   showTransferReport: boolean;
+  /** The introductory tour was finished or skipped; it opens by itself only before that. */
+  tourSeen: boolean;
 }
 
-const DEFAULT_SETTINGS: Settings = { showTransferReport: true };
+const DEFAULT_SETTINGS: Settings = { showTransferReport: true, tourSeen: false };
 
 /**
  * The install folder conversions read a release's format from: one the user added by hand
@@ -94,6 +96,8 @@ interface State {
   busy: boolean;
   settings: Settings;
   settingsOpen: boolean;
+  /** The introductory tour is on screen. */
+  tourOpen: boolean;
   report: TransferReportView | null;
   games: GameInfo[];
   gamesLoaded: boolean;
@@ -119,6 +123,7 @@ interface State {
   closeConfirm: () => void;
   setSettings: (patch: Partial<Settings>) => void;
   setSettingsOpen: (open: boolean) => void;
+  setTourOpen: (open: boolean) => void;
   showReport: (report: TransferReportView | null) => void;
   refreshGames: () => Promise<void>;
   setGames: (games: GameInfo[]) => void;
@@ -161,6 +166,7 @@ export const useStore = create<State>((set, get) => ({
   busy: false,
   settings: loadSettings(),
   settingsOpen: false,
+  tourOpen: false,
   report: null,
   games: [],
   gamesLoaded: false,
@@ -207,7 +213,8 @@ export const useStore = create<State>((set, get) => ({
     }
     // Long enough to read what was found when it all went fast; never a wait of its own.
     await new Promise((r) => setTimeout(r, Math.max(0, 700 - (Date.now() - started))));
-    set({ boot: null });
+    // The first time, the tour of the screen follows as soon as there is a screen to show.
+    set({ boot: null, tourOpen: !get().settings.tourSeen });
     const poll = async () => set({ gameRunning: await api.gameRunning().catch(() => false) });
     void poll();
     setInterval(poll, 4000);
@@ -372,6 +379,11 @@ export const useStore = create<State>((set, get) => ({
     set({ settings });
   },
   setSettingsOpen: (settingsOpen) => set({ settingsOpen }),
+  setTourOpen: (tourOpen) => {
+    // Closing it, finished or skipped, means it never opens by itself again.
+    if (!tourOpen) get().setSettings({ tourSeen: true });
+    set({ tourOpen });
+  },
   showReport: (report) => set({ report }),
 
   /** Installs and save locations; listed again whenever the saves are. */
