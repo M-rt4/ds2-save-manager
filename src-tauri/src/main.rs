@@ -3,6 +3,7 @@
 mod commands;
 mod commands_backups;
 mod conversion;
+mod commands_games;
 
 use tauri::{WebviewUrl, WebviewWindowBuilder};
 
@@ -48,6 +49,9 @@ fn main() {
             commands_backups::create_backup,
             commands_backups::restore_backup,
             commands_backups::delete_backup,
+            commands_games::list_games,
+            commands_games::add_game_folder,
+            commands_games::remove_game_folder,
         ])
         .run(tauri::generate_context!())
         .expect("error while running DS2 Save Manager");

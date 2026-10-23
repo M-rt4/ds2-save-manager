@@ -1480,3 +1480,125 @@ select.field option:checked {
 .btn.quiet.danger:hover:not(:disabled) {
   color: var(--danger);
 }
+
+/* ---------- Games rail: installs and where each release saves ---------- */
+
+/* Wider than the old saves list, so a file name, its age and an install path fit. */
+.main {
+  grid-template-columns: 280px 296px minmax(0, 1fr);
+}
+.place {
+  font-size: 13.5px;
+  color: var(--ash);
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+button.place {
+  display: block;
+  padding: 0;
+  background: none;
+  border: 0;
+  text-align: left;
+  cursor: pointer;
+}
+button.place:hover {
+  color: var(--bone);
+}
+.games-root {
+  padding: 0 20px 6px;
+}
+.games-root .group-label {
+  padding: 4px 0 2px;
+}
+.games-note {
+  margin: 14px 0 0;
+  padding: 12px 20px 0;
+  border-top: 1px solid var(--line-faint);
+  font-size: 13.5px;
+}
+.game {
+  margin-top: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line-faint);
+}
+.game-name {
+  margin: 0;
+  padding: 0 20px;
+  font-size: 18px;
+  font-weight: 500;
+  color: #ebe5d5;
+}
+.game-name.scholar {
+  color: #ecd3a2;
+}
+.game .group-label {
+  padding-top: 8px;
+}
+.game-none {
+  margin: 0;
+  padding: 0 20px 2px;
+  color: var(--ash);
+  font-size: 14.5px;
+}
+.row.game-add {
+  gap: 8px;
+  padding: 4px 20px;
+  color: var(--ash);
+  font-size: 14.5px;
+}
+.row.game-add:hover {
+  color: var(--bone);
+}
+.install {
+  padding: 0 20px 6px;
+}
+.install-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 10px;
+  color: var(--dim);
+  font-size: 13.5px;
+}
+.install-actions {
+  display: flex;
+  gap: 2px;
+  margin-left: -6px;
+}
+.install-actions .btn {
+  padding: 0 6px;
+  font-size: 14px;
+}
+.game-warn {
+  color: #e8c0b4;
+  font-size: 13.5px;
+}
+.save-row .when {
+  margin-left: auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--dim);
+  font-size: 13px;
+  white-space: nowrap;
+}
+.save-row .chars {
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 14px;
+  color: var(--bone);
+}
+.save-row .chars.bad {
+  color: #e8c0b4;
+}
+.save-row.free {
+  cursor: default;
+}
+.save-row.free::before {
+  display: none;
+}
+.save-row.free b {
+  font-weight: 400;
+  color: var(--ash);
+}

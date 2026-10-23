@@ -7,6 +7,8 @@ import {
   type CharacterEdit,
   type CharacterView,
   type FoundSave,
+  gamesApi,
+  type GameInfo,
   type InventoryOp,
   type ItemDef,
   type SaveView
@@ -74,6 +76,8 @@ interface State {
   settings: Settings;
   settingsOpen: boolean;
   report: TransferReportView | null;
+  games: GameInfo[];
+  gamesLoaded: boolean;
 
   setLang: (lang: Lang) => void;
   t: (key: Key, vars?: Record<string, string | number>) => string;
@@ -95,6 +99,8 @@ interface State {
   setSettings: (patch: Partial<Settings>) => void;
   setSettingsOpen: (open: boolean) => void;
   showReport: (report: TransferReportView | null) => void;
+  refreshGames: () => Promise<void>;
+  setGames: (games: GameInfo[]) => void;
 }
 
 export function draftOf(c: CharacterView): Draft {
@@ -132,6 +138,8 @@ export const useStore = create<State>((set, get) => ({
   settings: loadSettings(),
   settingsOpen: false,
   report: null,
+  games: [],
+  gamesLoaded: false,
 
   setLang: (lang) => {
     try {
@@ -155,6 +163,7 @@ export const useStore = create<State>((set, get) => ({
   refreshSaves: async () => {
     const saves = await api.listSaves().catch(() => [] as FoundSave[]);
     set({ saves, savesLoaded: true });
+    void get().refreshGames();
   },
 
   openSave: async (path) => {
@@ -281,7 +290,14 @@ export const useStore = create<State>((set, get) => ({
     set({ settings });
   },
   setSettingsOpen: (settingsOpen) => set({ settingsOpen }),
-  showReport: (report) => set({ report })
+  showReport: (report) => set({ report }),
+
+  /** Installs and save locations; listed again whenever the saves are. */
+  refreshGames: async () => {
+    const games = await gamesApi.listGames().catch(() => [] as GameInfo[]);
+    set({ games, gamesLoaded: true });
+  },
+  setGames: (games) => set({ games, gamesLoaded: true })
 }));
 
 /** Whether anything is waiting to be written: in-memory edits or a status draft. */

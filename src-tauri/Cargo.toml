@@ -30,6 +30,9 @@ ctr = "0.9"
 flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 
+[target.'cfg(windows)'.dependencies]
+winreg = "0.56"
+
 [profile.release]
 codegen-units = 1
 lto = true

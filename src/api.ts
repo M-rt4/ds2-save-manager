@@ -320,3 +320,48 @@ export const backupApi = {
     invoke<RestoreReport>('restore_backup', { backupPath, targetPath }),
   remove: (path: string) => invoke<void>('delete_backup', { path })
 };
+
+// ---------- Games: installs and save locations ----------
+
+export type InstallSource = 'steam' | 'registry' | 'manual';
+
+export interface Install {
+  path: string;
+  exe: string | null;
+  source: InstallSource;
+  exeVersion: string | null;
+  regulationVersion: string | null;
+}
+
+export interface SlotBrief {
+  slot: number;
+  name: string;
+  level: number;
+}
+
+/** A release's save in one folder under the saves root, or where the game would write it. */
+export interface GameSave {
+  path: string;
+  fileName: string;
+  folder: string;
+  account: string | null;
+  exists: boolean;
+  size: number;
+  modified: number;
+  slots: SlotBrief[];
+  error: SaveError | null;
+}
+
+export interface GameInfo {
+  edition: Edition;
+  steamAppId: number;
+  installs: Install[];
+  savesRoot: string | null;
+  saves: GameSave[];
+}
+
+export const gamesApi = {
+  listGames: () => invoke<GameInfo[]>('list_games'),
+  addGameFolder: (path: string) => invoke<GameInfo[]>('add_game_folder', { path }),
+  removeGameFolder: (path: string) => invoke<GameInfo[]>('remove_game_folder', { path })
+};
