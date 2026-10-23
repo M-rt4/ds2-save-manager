@@ -2,8 +2,9 @@ name: Release
 
 # Builds the Windows installer (NSIS) and portable zip and the Linux AppImage (the Steam Deck's
 # format: SteamOS is read-only, so no deb or rpm), and uploads them to a DRAFT release whose
-# notes come from changelog/<version>.en.md and .tr.md. Nothing is published and no tag is
-# made here: publishing the draft, which creates its tag, is done by hand.
+# notes join changelog/<version>.en.md and .tr.md of every version since the last published
+# release (scripts/release-notes.mjs). Nothing is published and no tag is made here:
+# publishing the draft, which creates its tag, is done by hand.
 #
 # Runs by hand (Actions > Release > Run workflow) on any branch, or when a v* tag is pushed;
 # the tag must then be v<version in package.json>. Running again for the same version reuses
@@ -38,6 +39,12 @@ jobs:
           TAG: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
         run: node scripts/version.mjs --check "$TAG"
 
+      # Every version since the last published release, so a skipped one's notes aren't lost.
+      - name: Release notes since the last published release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/release-notes.mjs --github > "$RUNNER_TEMP/release-notes.md"
+
       - name: Create or reuse the draft
         id: draft
         uses: actions/github-script@v7
@@ -46,8 +53,7 @@ jobs:
             const fs = require('fs');
             const version = JSON.parse(fs.readFileSync('package.json', 'utf8')).version;
             const tag = `v${version}`;
-            const notes = (lang) => fs.readFileSync(`changelog/${version}.${lang}.md`, 'utf8').trim();
-            const body = `## English\n\n${notes('en')}\n\n## Türkçe\n\n${notes('tr')}\n`;
+            const body = fs.readFileSync(`${process.env.RUNNER_TEMP}/release-notes.md`, 'utf8');
             const name = `DS2 Save Manager ${version}`;
             const { owner, repo } = context.repo;
             const releases = await github.paginate(github.rest.repos.listReleases, { owner, repo, per_page: 100 });
