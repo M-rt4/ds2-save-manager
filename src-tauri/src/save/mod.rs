@@ -7,6 +7,7 @@ mod bnd4;
 pub mod bytes;
 pub mod character;
 pub mod chunks;
+pub mod conversion;
 mod crypto;
 pub mod disk;
 pub mod edition;
@@ -22,6 +23,8 @@ pub mod raw;
 pub mod regulation;
 pub mod transfer;
 
+#[cfg(test)]
+mod conversion_tests;
 #[cfg(test)]
 mod testdata;
 #[cfg(test)]

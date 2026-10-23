@@ -1,17 +1,18 @@
-//! Carrying saves and characters to a release (and an account) on this machine. A written save
-//! always ends up in the target game's own format: its key, its regulation copy and version
-//! stamp, its entry layout and the account its folder belongs to. Every difference from what
-//! came in is reported as a `Change`, before (plan) and after (run) writing.
+//! Carrying saves and characters to a release (and an account) on this machine. The save that
+//! gets written is built by `save::conversion`; this side finds what the target game expects
+//! (its install, the target file, another local save), plans, and writes.
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
+use std::time::SystemTime;
 
 use ds2save::save::backups::Reason;
 use ds2save::save::character;
+use ds2save::save::conversion::{self, AccountPlan, Built, Change, FormatSource, Formats, LocalAccount, Target};
 use ds2save::save::disk;
-use ds2save::save::file::{character_entry, world_entry, SaveFile, HEADER_ENTRY, SLOT_COUNT};
-use ds2save::save::regulation::{self, RegulationInfo};
+use ds2save::save::file::{SaveFile, HEADER_ENTRY, SLOT_COUNT};
+use ds2save::save::regulation::RegulationInfo;
 use ds2save::save::transfer::{self, Compatibility, TargetFormat};
 use ds2save::save::{header, Edition, SaveError};
 use serde::{Deserialize, Serialize};
@@ -31,60 +32,6 @@ pub struct ConversionRequest {
     account: Option<String>,
     /// The target game's install folder, read when no save of that release can be trusted.
     game_dir: Option<String>,
-}
-
-/// Where the target format came from.
-#[derive(Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct FormatSource {
-    /// `install`, `targetFile` or `otherSave`.
-    kind: &'static str,
-    path: String,
-    regulation: RegulationInfo,
-}
-
-#[derive(Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct LocalAccount {
-    id: String,
-    folder: String,
-    files: Vec<String>,
-}
-
-#[derive(Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct AccountPlan {
-    source: Option<String>,
-    target_file: Option<String>,
-    target_folder: Option<String>,
-    result: Option<String>,
-    /// Where `result` came from: `manual`, `folder`, `targetFile` or `source`.
-    origin: &'static str,
-    local: Vec<LocalAccount>,
-}
-
-/// One difference between what goes in and what gets written.
-#[derive(Clone, Serialize)]
-#[serde(tag = "kind", rename_all = "camelCase")]
-pub enum Change {
-    #[serde(rename_all = "camelCase")]
-    Key { from: Edition, to: Edition },
-    #[serde(rename_all = "camelCase")]
-    Regulation { from: Option<RegulationInfo>, to: RegulationInfo, source: FormatSource },
-    #[serde(rename_all = "camelCase")]
-    TitleVersion { from: u32, to: u32 },
-    #[serde(rename_all = "camelCase")]
-    EntrySize { entry: usize, from: usize, to: usize },
-    #[serde(rename_all = "camelCase")]
-    Account { from: Option<String>, to: String, origin: &'static str },
-    #[serde(rename_all = "camelCase")]
-    Slot { slot: usize, before: Option<String>, after: Option<String> },
-    #[serde(rename_all = "camelCase")]
-    KeptTargetSystem { path: String },
-    #[serde(rename_all = "camelCase")]
-    NewFile { path: String },
-    #[serde(rename_all = "camelCase")]
-    Backup { path: String },
 }
 
 #[derive(Serialize)]
@@ -114,30 +61,25 @@ pub struct ConversionReport {
     changes: Vec<Change>,
 }
 
-/// Installed-game formats keyed by folder; reading one decrypts 9 MB and scans a 30 MB exe.
-static INSTALL_FORMATS: Mutex<Option<HashMap<(PathBuf, Edition), TargetFormat>>> = Mutex::new(None);
+/// The files of an install a format is read from, with their modification times: a game
+/// updated while the app runs is read again.
+type InstallKey = (PathBuf, Edition, Option<SystemTime>, Option<SystemTime>);
+
+/// Installed-game formats; reading one decrypts 9 MB and scans a 30 MB exe.
+static INSTALL_FORMATS: Mutex<Option<HashMap<InstallKey, TargetFormat>>> = Mutex::new(None);
 
 fn install_format(edition: Edition, dir: &Path) -> Result<TargetFormat, SaveError> {
-    let key = (dir.to_path_buf(), edition);
+    let modified = |name: &str| std::fs::metadata(dir.join(name)).and_then(|m| m.modified()).ok();
+    let key = (dir.to_path_buf(), edition, modified("DarkSoulsII.exe"), modified("enc_regulation.bnd.dcx"));
     if let Some(f) = INSTALL_FORMATS.lock().unwrap().get_or_insert_with(HashMap::new).get(&key) {
         return Ok(f.clone());
     }
     let fmt = TargetFormat::from_install(edition, dir)?;
-    if !regulation_matches(edition, &fmt.regulation.info()) {
+    if !conversion::trusted(edition, &fmt) {
         return Err(SaveError::new("wrongGame", format!("{} is not a {edition:?} install.", dir.display())));
     }
     INSTALL_FORMATS.lock().unwrap().get_or_insert_with(HashMap::new).insert(key, fmt.clone());
     Ok(fmt)
-}
-
-/// Scholar regulations are versioned 02xxxxxx, the original release's 01xxxxxx.
-fn regulation_matches(edition: Edition, info: &RegulationInfo) -> bool {
-    let major = if edition == Edition::Scholar { "02" } else { "01" };
-    info.version.starts_with(major)
-}
-
-fn folder_account(path: &Path) -> Option<u64> {
-    path.parent().and_then(|p| p.file_name()).and_then(|f| disk::account_of_folder(&f.to_string_lossy()))
 }
 
 /// The account folders a release can write to on this machine (on Linux each release has
@@ -163,8 +105,8 @@ fn local_accounts(edition: Edition) -> Vec<LocalAccount> {
     out
 }
 
-/// The newest save of `edition` under the saves root (other than `except`) whose regulation
-/// belongs to that release.
+/// The newest save of `edition` under the saves root (other than `except`) that carries that
+/// release's format.
 fn other_save_format(edition: Edition, except: &Path) -> Option<(TargetFormat, PathBuf)> {
     disk::discover().into_iter().filter(|f| f.edition == Some(edition)).find_map(|f| {
         let p = PathBuf::from(&f.path);
@@ -173,160 +115,46 @@ fn other_save_format(edition: Edition, except: &Path) -> Option<(TargetFormat, P
         }
         let (save, _) = read_save(&p).ok()?;
         let fmt = TargetFormat::from_save(&save).ok()?;
-        (save.source_edition == edition && regulation_matches(edition, &fmt.regulation.info())).then_some((fmt, p))
+        (save.source_edition == edition && conversion::trusted(edition, &fmt)).then_some((fmt, p))
     })
-}
-
-fn parse_account(text: &str) -> Result<u64, SaveError> {
-    let id: u64 = text.trim().parse().map_err(|_| SaveError::new("badAccount", "A SteamID64 is a 17-digit number."))?;
-    if id >> 32 != header::STEAM_ID_HIGH || id as u32 == 0 {
-        return Err(SaveError::new("badAccount", "That is not an individual Steam account id."));
-    }
-    Ok(id)
-}
-
-struct Built {
-    out: SaveFile,
-    changes: Vec<Change>,
-    format: FormatSource,
-    accounts: AccountPlan,
-}
-
-/// Builds the save that would be written, without writing it.
-fn build(source: &SaveFile, req: &ConversionRequest, base: Option<&SaveFile>) -> Result<Built, SaveError> {
-    let path = PathBuf::from(&req.target_path);
-    let mut changes = Vec::new();
-
-    // The format the written file must have.
-    let install = req.game_dir.as_deref().filter(|d| !d.is_empty()).map(|d| install_format(req.target_edition, Path::new(d)));
-    let base_format = base
-        .filter(|b| b.source_edition == req.target_edition)
-        .and_then(|b| TargetFormat::from_save(b).ok())
-        .filter(|f| regulation_matches(req.target_edition, &f.regulation.info()));
-    let (fmt, format) = match (install, base_format) {
-        (Some(Ok(f)), _) => {
-            let info = f.regulation.info();
-            (f, FormatSource { kind: "install", path: req.game_dir.clone().unwrap_or_default(), regulation: info })
-        }
-        (Some(Err(e)), _) => return Err(e),
-        (None, Some(f)) => {
-            let info = f.regulation.info();
-            (f, FormatSource { kind: "targetFile", path: req.target_path.clone(), regulation: info })
-        }
-        (None, None) => match other_save_format(req.target_edition, &path) {
-            Some((f, p)) => {
-                let info = f.regulation.info();
-                (f, FormatSource { kind: "otherSave", path: p.to_string_lossy().into_owned(), regulation: info })
-            }
-            None => {
-                return Err(SaveError::new(
-                    "needsGameInfo",
-                    "Nothing tells what the target game expects: choose its install folder, or start it once so it writes a save.",
-                ))
-            }
-        },
-    };
-
-    // Characters.
-    let mut out = match (req.slot, base) {
-        (None, Some(b)) => {
-            let merged = transfer::merge(source, b)?;
-            for s in 0..SLOT_COUNT {
-                let before = character::summary(b, s);
-                let after = character::summary(&merged, s);
-                let (before, after) = (before.occupied.then_some(before.name), after.occupied.then_some(after.name));
-                let same_data = b.block(character_entry(s)) == merged.block(character_entry(s))
-                    && b.block(world_entry(s)) == merged.block(world_entry(s));
-                if !same_data {
-                    changes.push(Change::Slot { slot: s, before, after });
-                }
-            }
-            changes.push(Change::KeptTargetSystem { path: req.target_path.clone() });
-            merged
-        }
-        (None, None) => {
-            changes.push(Change::NewFile { path: req.target_path.clone() });
-            transfer::convert(source, req.target_edition)
-        }
-        (Some((from, to)), Some(b)) => {
-            if from >= SLOT_COUNT || !character::summary(source, from).occupied {
-                return Err(SaveError::invalid("The source slot has no character."));
-            }
-            let mut out = b.clone();
-            transfer::transfer(source, from, &mut out, to)?;
-            let before = character::summary(b, to.min(SLOT_COUNT - 1));
-            changes.push(Change::Slot {
-                slot: to,
-                before: before.occupied.then_some(before.name),
-                after: Some(character::summary(source, from).name),
-            });
-            out
-        }
-        (Some(_), None) => {
-            return Err(SaveError::new("needsTarget", "One character can only go into an existing save of the target release."))
-        }
-    };
-
-    // Format: key, regulation copy, title list version, entry 21 capacity.
-    let reference = match (base, req.slot) {
-        (Some(b), Some(_)) => b,
-        _ => &out,
-    };
-    let before_reg = transfer::regulation_info(reference);
-    let before_title = ds2save::save::chunks::find(reference.block(22), header::TITLE_CHUNK).map(|c| c.version);
-    let before_cap = reference.block(regulation::ENTRY).len();
-    let source_key = source.source_edition;
-    transfer::conform(&mut out, &fmt)?;
-    if source_key != fmt.edition {
-        changes.push(Change::Key { from: source_key, to: fmt.edition });
-    }
-    let after_reg = fmt.regulation.info();
-    if before_reg.as_ref() != Some(&after_reg) {
-        changes.push(Change::Regulation { from: before_reg, to: after_reg, source: format.clone() });
-    }
-    if let Some(from) = before_title.filter(|v| *v != fmt.title_version) {
-        changes.push(Change::TitleVersion { from, to: fmt.title_version });
-    }
-    if before_cap != fmt.capacity {
-        changes.push(Change::EntrySize { entry: regulation::ENTRY, from: before_cap, to: fmt.capacity });
-    }
-
-    // Account: typed by the user, else the target folder's, else whatever the file names.
-    let current = header::steam_id(out.block(HEADER_ENTRY));
-    let folder = folder_account(&path);
-    let manual = req.account.as_deref().filter(|a| !a.trim().is_empty()).map(parse_account).transpose()?;
-    let (result, origin) = match (manual, folder) {
-        (Some(id), _) => (Some(id), "manual"),
-        (None, Some(id)) => (Some(id), "folder"),
-        (None, None) => (current, if base.is_some() { "targetFile" } else { "source" }),
-    };
-    if let Some(id) = result.filter(|id| Some(*id) != current) {
-        header::set_steam_id(out.block_mut(HEADER_ENTRY), id)?;
-    }
-    let source_account = header::steam_id(source.block(HEADER_ENTRY));
-    if let Some(id) = result.filter(|id| Some(*id) != source_account) {
-        changes.push(Change::Account { from: source_account.map(|a| a.to_string()), to: id.to_string(), origin });
-    }
-    let accounts = AccountPlan {
-        source: source_account.map(|a| a.to_string()),
-        target_file: base.and_then(|b| header::steam_id(b.block(HEADER_ENTRY))).map(|a| a.to_string()),
-        target_folder: folder.map(|a| a.to_string()),
-        result: result.map(|a| a.to_string()),
-        origin,
-        local: local_accounts(req.target_edition),
-    };
-    Ok(Built { out, changes, format, accounts })
-}
-
-/// A save written over itself for its own release is a repair (it gets the installed game's
-/// format and its folder's account); written over itself as the other release it would
-/// end up named for the wrong game.
-fn same_file_other_release(req: &ConversionRequest, source: &SaveFile, path: &Path) -> bool {
-    doc_id(path) == req.source_id && req.slot.is_none() && req.target_edition != source.source_edition
 }
 
 fn source_of(state: &AppState, id: &str) -> CmdResult<SaveFile> {
     state.with_doc(id, |doc| Ok(doc.save.clone()))
+}
+
+/// The game saved the source after it was opened here: what would be carried over is old.
+fn source_changed() -> SaveError {
+    SaveError::new(
+        "sourceChanged",
+        "The source file changed on disk after it was opened (the game saved?). Open it again first.",
+    )
+}
+
+fn target_dirty() -> SaveError {
+    SaveError::new("targetDirty", "The target is open here with unsaved changes; save or discard them first.")
+}
+
+fn target<'a>(req: &'a ConversionRequest, path: &'a Path) -> Target<'a> {
+    Target {
+        slot: req.slot,
+        edition: req.target_edition,
+        path,
+        account: req.account.as_deref(),
+        same_file: doc_id(path) == req.source_id,
+    }
+}
+
+fn build(source: &SaveFile, req: &ConversionRequest, path: &Path, base: Option<&SaveFile>) -> CmdResult<Built> {
+    let install = req
+        .game_dir
+        .as_deref()
+        .filter(|d| !d.is_empty())
+        .map(|d| (install_format(req.target_edition, Path::new(d)), d.to_string()));
+    let mut other_save = || other_save_format(req.target_edition, path);
+    let mut built = conversion::build(source, &target(req, path), base, Formats { install, other_save: &mut other_save })?;
+    built.accounts.local = local_accounts(req.target_edition);
+    Ok(built)
 }
 
 #[tauri::command]
@@ -334,17 +162,9 @@ pub async fn plan_conversion(state: State<'_, AppState>, req: ConversionRequest)
     let source = source_of(&state, &req.source_id)?;
     let path = PathBuf::from(&req.target_path);
     let target_exists = path.exists();
-    let mut target_error = None;
-    let base = if target_exists {
-        match read_save(&path) {
-            Ok((t, _)) => Some(t),
-            Err(e) => {
-                target_error = Some(e);
-                None
-            }
-        }
-    } else {
-        None
+    let (base, target_error) = match conversion::read_target(&path) {
+        Ok(base) => (base, None),
+        Err(e) => (None, Some(e)),
     };
     let target_open_and_dirty = state.is_dirty(&doc_id(&path));
     let mut plan = ConversionPlan {
@@ -352,14 +172,14 @@ pub async fn plan_conversion(state: State<'_, AppState>, req: ConversionRequest)
         target_exists,
         target_edition: base.as_ref().map(|b| b.source_edition),
         target_slots: base.as_ref().map(|b| (0..SLOT_COUNT).map(|i| character::summary(b, i).into()).collect()),
-        target_error,
+        target_error: target_error.clone(),
         compatibility: base.as_ref().map(|b| transfer::compare(&source, b)),
         source_regulation: transfer::regulation_info(&source),
         format: None,
         accounts: AccountPlan {
             source: header::steam_id(source.block(HEADER_ENTRY)).map(|a| a.to_string()),
             target_file: None,
-            target_folder: folder_account(&path).map(|a| a.to_string()),
+            target_folder: conversion::folder_account(&path).map(|a| a.to_string()),
             result: None,
             origin: "source",
             local: local_accounts(req.target_edition),
@@ -368,21 +188,23 @@ pub async fn plan_conversion(state: State<'_, AppState>, req: ConversionRequest)
         blocked: None,
         target_open_and_dirty,
     };
-    if same_file_other_release(&req, &source, &path) {
-        plan.blocked = Some(SaveError::new("sameFile", "The target is the source file itself."));
-        return Ok(plan);
-    }
-    match build(&source, &req, base.as_ref()) {
-        Ok(b) => {
-            plan.format = Some(b.format);
-            plan.accounts = b.accounts;
-            plan.changes = b.changes;
+    plan.blocked = if state.changed_on_disk(&req.source_id) {
+        Some(source_changed())
+    } else if let Err(e) = conversion::check_same_file(&source, &target(&req, &path)) {
+        Some(e)
+    } else if let Some(e) = target_error {
+        Some(e)
+    } else {
+        match build(&source, &req, &path, base.as_ref()) {
+            Ok(b) => {
+                plan.format = Some(b.format);
+                plan.accounts = b.accounts;
+                plan.changes = b.changes;
+                target_open_and_dirty.then(target_dirty)
+            }
+            Err(e) => Some(e),
         }
-        Err(e) => plan.blocked = Some(e),
-    }
-    if target_open_and_dirty && plan.blocked.is_none() {
-        plan.blocked = Some(SaveError::new("targetDirty", "The target is open here with unsaved changes; save or discard them first."));
-    }
+    };
     Ok(plan)
 }
 
@@ -391,14 +213,15 @@ pub async fn run_conversion(state: State<'_, AppState>, req: ConversionRequest) 
     crate::commands::ensure_game_closed()?;
     let source = source_of(&state, &req.source_id)?;
     let path = PathBuf::from(&req.target_path);
-    if same_file_other_release(&req, &source, &path) {
-        return Err(SaveError::new("sameFile", "The target is the source file itself."));
+    if state.changed_on_disk(&req.source_id) {
+        return Err(source_changed());
     }
+    conversion::check_same_file(&source, &target(&req, &path))?;
     if state.is_dirty(&doc_id(&path)) {
-        return Err(SaveError::new("targetDirty", "The target is open here with unsaved changes; save or discard them first."));
+        return Err(target_dirty());
     }
-    let base = if path.exists() { Some(read_save(&path)?.0) } else { None };
-    let Built { out, mut changes, .. } = build(&source, &req, base.as_ref())?;
+    let base = conversion::read_target(&path)?;
+    let Built { out, mut changes, .. } = build(&source, &req, &path, base.as_ref())?;
     let (backup, fingerprint) = write_checked(&path, &out, Reason::Transfer)?;
     if let Some(b) = &backup {
         changes.push(Change::Backup { path: b.to_string_lossy().into_owned() });
@@ -422,7 +245,7 @@ pub async fn run_conversion(state: State<'_, AppState>, req: ConversionRequest) 
 pub async fn default_target(path: String, edition: Edition) -> String {
     let p = PathBuf::from(&path);
     let local = local_accounts(edition);
-    if let Some(id) = folder_account(&p) {
+    if let Some(id) = conversion::folder_account(&p) {
         if let Some(a) = local.iter().find(|a| a.id == id.to_string()) {
             return Path::new(&a.folder).join(edition.file_name()).to_string_lossy().into_owned();
         }
