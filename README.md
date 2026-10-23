@@ -107,6 +107,8 @@ npm run build        # Windows: NSIS kurulum paketi · Linux: AppImage
 pwsh scripts/portable.ps1   # Windows: build'den sonra taşınabilir zip
 ```
 
+Geliştirme sürümleri (`npm run dev`) oyunun gerçek kayıt klasörlerine hiç yazmaz; oradaki bir kaydı salt okunur açar. Ayarlarını ve WebView verisini (dil, tercihler) de yayımlanan uygulamadan ayrı, `com.mert.ds2savemanager.dev` adlı klasörlerde tutar; `DS2SM_CONFIG_DIR` ve `WEBVIEW2_USER_DATA_FOLDER` bunları başka bir yere yönlendirir.
+
 Sürüm çıkarmak:
 
 - Sürüm yalnızca `package.json`'da tutulur; `node scripts/version.mjs minor` (yeni özellik) ya da `patch` (yalnızca düzeltme) onu `Cargo.toml` ve kilit dosyalarıyla birlikte artırır. `tauri.conf.json` sürümü `package.json`'dan okur.

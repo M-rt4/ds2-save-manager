@@ -29,6 +29,14 @@ fn linux_webkit_defaults() {
 fn main() {
     #[cfg(target_os = "linux")]
     linux_webkit_defaults();
+    let mut context = tauri::generate_context!();
+    // Development builds keep their own settings (`settings.json`) and WebView storage (language,
+    // preferences), so a dev copy never reads or changes the released app's: both folders are
+    // named after the identifier. `DS2SM_CONFIG_DIR` and `WEBVIEW2_USER_DATA_FOLDER` still win.
+    if cfg!(debug_assertions) {
+        let identifier = format!("{}.dev", context.config().identifier);
+        context.config_mut().identifier = identifier;
+    }
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
@@ -95,6 +103,6 @@ fn main() {
             commands_files::browse_places,
             commands_files::list_dir,
         ])
-        .run(tauri::generate_context!())
+        .run(context)
         .expect("error while running DS2 Save Manager");
 }
