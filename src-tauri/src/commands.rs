@@ -192,8 +192,13 @@ pub async fn game_running() -> CmdResult<bool> {
 #[tauri::command]
 pub async fn open_save(state: State<'_, AppState>, path: String) -> CmdResult<SaveView> {
     let path = PathBuf::from(path);
-    let (save, fingerprint) = read_save(&path)?;
     let id = doc_id(&path);
+    // Opened again while it holds unsaved edits: reading the file over them would lose them
+    // without a word. Throwing them away is reload_save's job, asked for in so many words.
+    if let Some(doc) = state.docs.lock().unwrap().get(&id).filter(|d| d.dirty) {
+        return Ok(view(&id, doc));
+    }
+    let (save, fingerprint) = read_save(&path)?;
     let doc = Doc::new(path, save, fingerprint);
     let v = view(&id, &doc);
     state.docs.lock().unwrap().insert(id, doc);

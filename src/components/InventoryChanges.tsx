@@ -74,7 +74,9 @@ export function useInventoryChanges(doc: SaveView | null, character: CharacterVi
         await inventoryApi.revert(doc.id, character.slot, offset);
         // As editInventory does: a status draft being typed stays as it is.
         const [fresh, char] = await Promise.all([api.getSave(doc.id), api.getCharacter(doc.id, character.slot)]);
-        useStore.setState({ doc: fresh, character: char });
+        // Another save or character may have been picked while this was on its way.
+        const now = useStore.getState();
+        if (now.doc?.id === doc.id) useStore.setState({ doc: fresh, ...(now.slot === character.slot ? { character: char } : {}) });
       } catch (e) {
         fail(e);
       }
