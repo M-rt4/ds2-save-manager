@@ -15,7 +15,11 @@ use super::header::STEAM_ID_HIGH;
 pub const BACKUP_DIR: &str = "DS2 Save Manager Backups";
 
 /// `%APPDATA%\DarkSoulsII`, where both releases keep one folder per Steam account.
+/// `DS2SM_SAVES_ROOT` points test copies at a scratch tree instead of the real saves.
 pub fn saves_root() -> Option<PathBuf> {
+    if let Some(root) = std::env::var_os("DS2SM_SAVES_ROOT") {
+        return Some(PathBuf::from(root));
+    }
     std::env::var_os("APPDATA").map(|a| PathBuf::from(a).join("DarkSoulsII"))
 }
 
@@ -70,7 +74,7 @@ pub fn discover() -> Vec<FoundSave> {
             }
         }
     }
-    found.sort_by(|a, b| b.modified.cmp(&a.modified));
+    found.sort_by_key(|f| std::cmp::Reverse(f.modified));
     found
 }
 

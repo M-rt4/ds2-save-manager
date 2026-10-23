@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useStore } from './store';
+import { draftEdit, useStore } from './store';
 import { TitleBar } from './components/TitleBar';
 import { SaveRail } from './components/SaveRail';
 import { SlotList } from './components/SlotList';
@@ -23,7 +23,8 @@ export function App() {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
         e.preventDefault();
         const s = useStore.getState();
-        if (!s.gameRunning && !s.busy) void s.saveChanges();
+        const pending = s.doc?.dirty || (s.character && s.draft && draftEdit(s.character, s.draft));
+        if (pending && !s.gameRunning && !s.busy) void s.saveChanges();
       }
     };
     window.addEventListener('keydown', onKey);
