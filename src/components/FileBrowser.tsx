@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { filesApi, useBrowser, type BrowseOptions, type Listing, type Place } from '../browse';
 import { useStore } from '../store';
+import { useOsk } from '../osk';
 import { errorText, useT, type Key } from '../i18n';
 import { editionName } from '../game';
 import { Chevron, FolderOpen } from './icons';
@@ -18,7 +19,13 @@ const PLACE: Record<Place['kind'], Key> = {
 
 const sepOf = (path: string) => (path.includes('\\') ? '\\' : '/');
 const join = (dir: string, name: string) => (dir.endsWith(sepOf(dir)) ? dir + name : dir + sepOf(dir) + name);
-const dirOf = (path: string) => path.slice(0, Math.max(path.lastIndexOf('\\'), path.lastIndexOf('/')));
+/** The folder holding a path. At a root it keeps the separator: a bare "E:" names that drive's
+ *  current folder, not its root, and "/x" lies in "/". */
+const dirOf = (path: string) => {
+  const at = Math.max(path.lastIndexOf('\\'), path.lastIndexOf('/'));
+  const dir = path.slice(0, Math.max(at, 0));
+  return at >= 0 && (dir === '' || /^[A-Za-z]:$/.test(dir)) ? path.slice(0, at + 1) : dir;
+};
 const nameOf = (path: string) => path.slice(Math.max(path.lastIndexOf('\\'), path.lastIndexOf('/')) + 1);
 
 export function FileBrowser() {
@@ -62,9 +69,10 @@ function Browser({ request }: { request: BrowseOptions & { resolve: (p: string |
       if (dirOf(start) && (await go(dirOf(start)))) return;
       if (p[0]) void go(p[0].path);
     });
-    // Escape closes the browser only, not the settings it may have been opened from.
+    // Escape closes the browser only, not the settings it may have been opened from. With the
+    // on-screen keyboard open over it, Escape is the keyboard's: it closes itself first.
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return;
+      if (e.key !== 'Escape' || useOsk.getState().osk) return;
       e.stopImmediatePropagation();
       done(null);
     };

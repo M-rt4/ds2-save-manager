@@ -85,8 +85,11 @@ const lastInPanel = new WeakMap<Element, HTMLElement>();
 let lastFocused: HTMLElement | null = null;
 /** The panel the cursor was last in, to stay there when its control is replaced. */
 let lastPanel: Element | null = null;
-/** Where the cursor was when a dialog opened, to return there when it closes. */
-let beforeDialog: HTMLElement | null = null;
+/**
+ * The layers open over the window (dialogs, the on-screen keyboard), innermost last, each with
+ * where the cursor was when it came up, to return there when it closes.
+ */
+const openers: { layer: Element; from: HTMLElement | null }[] = [];
 const DIRS: PadButton[] = ['up', 'down', 'left', 'right'];
 
 function activate() {
@@ -189,23 +192,25 @@ function reveal() {
 function settle() {
   const check = () => {
     if (!usePad.getState().active) return;
+    const root = scope();
+    // Layers that closed since: back to where the outermost of them was opened from, so a file
+    // browser opened from Settings returns to its button, and Settings then to its own opener.
+    let back: HTMLElement | null = null;
+    while (openers.length && !openers[openers.length - 1].layer.isConnected) back = openers.pop()!.from;
+    const opened = root.matches('.scrim, .osk') && openers[openers.length - 1]?.layer !== root;
+    if (opened) {
+      // Opened as another closed (Settings giving way to its Quit question): that one's way back.
+      openers.push({ layer: root, from: lastFocused?.isConnected && !root.contains(lastFocused) ? lastFocused : back });
+    }
     const at = current();
     if (at) {
       // Focus came back by itself (the keyboard returning to its field): show the cursor there.
       if (!at.hasAttribute('data-pad-focus')) focus(at);
       return;
     }
-    const root = scope();
-    if (root.classList.contains('scrim')) {
-      if (lastFocused?.isConnected && !root.contains(lastFocused)) beforeDialog = lastFocused;
-      const to = first(root);
-      if (to) focus(to);
-    } else {
-      const panel = lastPanel?.isConnected && root.contains(lastPanel) ? lastPanel : root;
-      const back = usable(beforeDialog) ? beforeDialog : usable(lastFocused) ? lastFocused : first(panel) ?? first(root);
-      beforeDialog = null;
-      if (back) focus(back);
-    }
+    const panel = lastPanel?.isConnected && root.contains(lastPanel) ? lastPanel : root;
+    const to = opened ? first(root) : usable(back) ? back : usable(lastFocused) ? lastFocused : (first(panel) ?? first(root));
+    if (to) focus(to);
   };
   window.setTimeout(check, 60);
   window.setTimeout(check, 300);
@@ -318,8 +323,14 @@ function adjust(el: HTMLElement, step: 1 | -1): boolean {
   return false;
 }
 
+/**
+ * A key as the keyboard sends it: to the focused control, bubbling up to the window, so the
+ * capture-phase handlers of the layer on top (the file browser) run first. Sent to the window
+ * itself, its listeners would run in the order they were added, and B in a file browser opened
+ * from Settings would close Settings too.
+ */
 function key(key: string, init: KeyboardEventInit = {}) {
-  window.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true, ...init }));
+  (document.activeElement ?? document.body).dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true, ...init }));
 }
 
 /** LB / RB: the tabs of the open dialog, else of the detail panel. */
@@ -488,13 +499,21 @@ function handle(e: PadEvent) {
   else if (e.kind === 'axis') axis(e.axis, e.value);
   else if (e.kind === 'pads') {
     usePad.setState({ family: e.pads[0]?.family ?? null, name: e.pads[0]?.name ?? null });
+    // A pad unplugged, or out of battery, never sends the release of what it held: without
+    // this a held direction would keep repeating (a Status stepper climbing to its maximum).
+    letGo();
     // Unplugging the last pad hands the app back to keyboard and mouse.
     if (e.pads.length === 0) deactivate();
   } else {
-    stopRepeat();
-    stickDir = null;
-    scroll.x = scroll.y = stick.x = stick.y = 0;
+    letGo();
   }
+}
+
+/** Lets go of whatever was held: a repeating direction, a pushed stick, a running scroll. */
+function letGo() {
+  stopRepeat();
+  stickDir = null;
+  scroll.x = scroll.y = stick.x = stick.y = 0;
 }
 
 /** Starts listening for pads; called once at startup. */

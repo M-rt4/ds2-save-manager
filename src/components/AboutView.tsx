@@ -50,7 +50,7 @@ async function webviewVersion(): Promise<string | null> {
 function Link({ url, children }: { url: string; children: string }) {
   const fail = useStore((s) => s.fail);
   return (
-    <button className="link" title={url} onClick={() => void openUrl(url).catch(fail)}>
+    <button className="link" data-external title={url} onClick={() => void openUrl(url).catch(fail)}>
       {children}
     </button>
   );
