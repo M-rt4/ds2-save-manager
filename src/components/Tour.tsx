@@ -27,8 +27,10 @@ const STEPS: Step[] = [
   { target: () => document.querySelector('.titlebar .lang'), title: 'tour.settingsTitle', text: 'tour.settingsText' }
 ];
 
-/** The parts of the app the tour sits over, made inert while it is open. */
-const APP_PARTS = '.app > .titlebar, .app > .main, .app > .footer';
+/** The parts of the app the tour sits over, made inert while it is open. The title bar stays
+ *  live but for its Settings and language buttons: the window can still be moved, shrunk and
+ *  closed, as with any dialog. */
+const APP_PARTS = '.app > .main, .app > .footer, .titlebar .lang';
 
 interface Box {
   left: number;
@@ -77,6 +79,7 @@ function place(hole: Box | null, card: { width: number; height: number }): { lef
 export function Tour() {
   const t = useT();
   const close = useStore((s) => s.setTourOpen);
+  const confirm = useStore((s) => s.confirm);
   // Only the steps whose area is on screen (with no save open, there are no tabs to show),
   // chosen once the app beneath has been drawn: the tour opens in the same render as it.
   const [steps, setSteps] = useState<Step[]>([]);
@@ -119,10 +122,19 @@ export function Tour() {
 
   const go = (to: number) => (to >= steps.length ? close(false) : setAt(Math.max(0, to)));
 
-  // Arrow keys step through; Escape (and the pad's B) skips the rest.
+  // A question of the app's own (closing the window with unsaved changes) must not open under
+  // the tour, where it could be neither seen nor answered: the tour gives way to it.
+  useEffect(() => {
+    if (confirm) close(false);
+  }, [confirm, close]);
+
+  // Arrow keys step through; Escape (and the pad's B) skips the rest. Shortcuts of the app
+  // beneath (Ctrl S…) don't get through: nothing can be done there while the tour is open.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') close(false);
+      if (e.ctrlKey || e.metaKey) {
+        // Swallowed: the app's shortcuts. Alt+F4 and the like are the window's and pass.
+      } else if (e.key === 'Escape') close(false);
       else if (e.key === 'ArrowRight') setAt((a) => (a + 1 >= steps.length ? a : a + 1));
       else if (e.key === 'ArrowLeft') setAt((a) => Math.max(0, a - 1));
       else return;

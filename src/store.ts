@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import {
+  aboutApi,
   api,
   type Attributes,
   type Change,
@@ -214,7 +215,8 @@ export const useStore = create<State>((set, get) => ({
     // Long enough to read what was found when it all went fast; never a wait of its own.
     await new Promise((r) => setTimeout(r, Math.max(0, 700 - (Date.now() - started))));
     // The first time, the tour of the screen follows as soon as there is a screen to show.
-    set({ boot: null, tourOpen: !get().settings.tourSeen });
+    const quiet = await aboutApi.tourSuppressed().catch(() => false);
+    set({ boot: null, tourOpen: !get().settings.tourSeen && !quiet });
     const poll = async () => set({ gameRunning: await api.gameRunning().catch(() => false) });
     void poll();
     setInterval(poll, 4000);

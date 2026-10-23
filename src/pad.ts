@@ -403,6 +403,9 @@ export function press(button: PadButton) {
       return;
     }
   }
+  // The introductory tour only steps: A for its buttons, B to skip, the directions between
+  // them. The shortcuts (Settings, tabs, panels, Save) would act on the app beneath it.
+  if (document.querySelector('.scrim.tour') && !(DIRS.includes(button) || button === 'south' || button === 'east')) return;
   // The on-screen keyboard takes the face and shoulder buttons; the cursor moves over its keys.
   const typing = osk.useOsk.getState().osk;
   if (typing) {

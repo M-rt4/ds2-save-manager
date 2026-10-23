@@ -3115,10 +3115,11 @@ body[data-pad] * {
 
 /* ---------- Introductory tour ---------- */
 
-/* Over the whole window, catching every click so the app beneath (inert while the tour is open)
-   keeps its look but takes no input. The darkness is the lit hole's own shadow. */
+/* Over the window below the title bar, catching every click so the app beneath (inert while the
+   tour is open) keeps its look but takes no input; the title bar's window buttons and drag area
+   stay usable. The darkness is the lit hole's own shadow and covers the title bar as well. */
 .scrim.tour {
-  inset: 0;
+  inset: 40px 0 0;
   z-index: 80;
   display: block;
   background: transparent;

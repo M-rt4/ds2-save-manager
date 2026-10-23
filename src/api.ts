@@ -381,7 +381,9 @@ export const aboutApi = {
   /** Set only in development builds. */
   devLabel: () => invoke<string | null>('dev_label'),
   /** Set when this copy lists and writes a scratch folder instead of the real saves. */
-  testSavesRoot: () => invoke<string | null>('test_saves_root')
+  testSavesRoot: () => invoke<string | null>('test_saves_root'),
+  /** Debug builds started for scripted tests (DS2SM_NO_TOUR) skip the tour's first opening. */
+  tourSuppressed: () => invoke<boolean>('tour_suppressed')
 };
 
 export interface RawMatch {
