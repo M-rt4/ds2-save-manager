@@ -1,6 +1,7 @@
 import { useStore } from '../store';
 import { useT } from '../i18n';
 import { journeyLabel, playTime } from '../game';
+import { PanelChip } from './PadHints';
 
 export function SlotList() {
   const t = useT();
@@ -10,6 +11,7 @@ export function SlotList() {
 
   return (
     <section className="panel">
+      <PanelChip index={1} label={t('slots.title')} />
       <div className="panel-head">
         <h2 className="panel-title">{t('slots.title')}</h2>
         <hr className="rule" />

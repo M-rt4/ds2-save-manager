@@ -5,6 +5,7 @@ import { useStore } from '../store';
 import { errorText, useT, type Key, type Lang } from '../i18n';
 import { editionName } from '../game';
 import { FolderOpen, Plus, Refresh } from './icons';
+import { PanelChip } from './PadHints';
 
 function relative(ms: number, lang: string): string {
   const diff = (ms - Date.now()) / 1000;
@@ -81,6 +82,7 @@ export function SaveRail() {
 
   return (
     <section className="panel">
+      <PanelChip index={0} label={t('games.title')} />
       <div className="panel-head">
         <h2 className="panel-title">{t('games.title')}</h2>
         <hr className="rule" />

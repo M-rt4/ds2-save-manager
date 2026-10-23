@@ -51,13 +51,15 @@ type PadEvent =
   | { kind: 'blur' };
 
 /**
- * The connected pad (its glyph family and name; null when none is connected), and whether
- * the app is in pad mode, i.e. the pad was the last input used.
+ * The connected pad (its glyph family and name; null when none is connected), whether the
+ * app is in pad mode, i.e. the pad was the last input used, and which of the three main
+ * panels holds the cursor (0 to 2; -1 while it is in a dialog, the keyboard or the footer).
  */
-export const usePad = create<{ family: PadFamily | null; name: string | null; active: boolean }>(() => ({
+export const usePad = create<{ family: PadFamily | null; name: string | null; active: boolean; panel: number }>(() => ({
   family: null,
   name: null,
-  active: false
+  active: false,
+  panel: -1
 }));
 
 /** The glyph family to draw while in pad mode, else null (keyboard and mouse hints). */
@@ -98,6 +100,8 @@ function deactivate() {
   if (usePad.getState().active) {
     usePad.setState({ active: false });
     delete document.body.dataset.pad;
+    // Back on the pad, the frame comes in again with its pulse.
+    unframe();
   }
 }
 
@@ -133,11 +137,38 @@ function current(): HTMLElement | null {
 
 const panelOf = (el: Element) => el.closest('.panel, .footer, .titlebar, .dialog');
 
+/** The region framed around the cursor, as a console menu frames the window it is in. */
+let region: Element | null = null;
+
+/**
+ * Frames the region the cursor is in: the on-screen keyboard, a dialog (Settings and the file
+ * browser among them), one of the three main panels or the footer. It is marked
+ * data-pad-region, and data-pad-enter for the short pulse as the frame arrives; the styles
+ * apply only in pad mode.
+ */
+function frame(el: HTMLElement) {
+  const next = el.closest('.osk, .dialog, .main > .panel, .footer');
+  if (next === region) return;
+  unframe();
+  region = next;
+  next?.setAttribute('data-pad-region', '');
+  next?.setAttribute('data-pad-enter', '');
+  usePad.setState({ panel: next ? [...document.querySelectorAll('.main > .panel')].indexOf(next) : -1 });
+}
+
+function unframe() {
+  region?.removeAttribute('data-pad-region');
+  region?.removeAttribute('data-pad-enter');
+  region = null;
+  usePad.setState({ panel: -1 });
+}
+
 function focus(el: HTMLElement) {
   document.querySelector('[data-pad-focus]')?.removeAttribute('data-pad-focus');
   el.setAttribute('data-pad-focus', '');
   el.focus({ preventScroll: true });
   el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  frame(el);
   const panel = panelOf(el);
   if (panel) lastInPanel.set(panel, el);
   lastFocused = el;
