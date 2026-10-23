@@ -601,7 +601,9 @@ mod tests {
         let kept: serde_json::Value = serde_json::from_slice(&fs::read(&settings).unwrap()).unwrap();
         assert_eq!(kept["lang"], "tr", "other settings survive");
 
-        remove_folder(&settings, &added.path.to_uppercase()).unwrap();
+        // Windows paths match without case; Linux paths are case-sensitive.
+        let spelled = if cfg!(windows) { added.path.to_uppercase() } else { added.path.clone() };
+        remove_folder(&settings, &spelled).unwrap();
         assert!(manual_folders(&settings).is_empty());
         let _ = fs::remove_dir_all(&root);
     }
