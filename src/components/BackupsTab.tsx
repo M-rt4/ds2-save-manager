@@ -204,7 +204,7 @@ export function BackupsTab({ doc }: { doc: SaveView }) {
                       <button className="btn ember" disabled={working || !!why} onClick={() => restore(b)}>
                         {t('backup.restore')}
                       </button>
-                      <button className="btn quiet" onClick={() => void revealItemInDir(b.path)}>
+                      <button className="btn quiet" data-external onClick={() => void revealItemInDir(b.path)}>
                         {t('file.reveal')}
                       </button>
                       <button className="btn quiet danger" disabled={working} onClick={() => remove(b)}>

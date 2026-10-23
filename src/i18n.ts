@@ -379,7 +379,43 @@ const en = {
   'stats.spell': 'Spell',
   'stats.uses': 'Uses by attunement',
   'stats.infusion': 'An infusion changes these values; they are shown for the item without it.',
-  'stats.show': 'Show stats'
+  'stats.show': 'Show stats',
+
+  'pad.select': 'Select',
+  'pad.back': 'Back',
+  'pad.tabs': 'Tabs',
+  'pad.panels': 'Panels',
+  'pad.save': 'Save',
+  'pad.settings': 'Settings',
+  'pad.detected': 'Detected controller',
+  'pad.none': 'None. A controller takes over as soon as one of its buttons is pressed.',
+  'pad.quit': 'Quit',
+  'pad.quitHint': 'Close DS2 Save Manager.',
+  'pad.quitConfirm': 'Quit DS2 Save Manager?',
+  'pad.quitUnsaved': 'There are unsaved changes; quitting discards them. Quit DS2 Save Manager?',
+
+  'osk.title': 'Keyboard',
+  'osk.type': 'Type',
+  'osk.delete': 'Delete',
+  'osk.space': 'Space',
+  'osk.shift': 'Shift',
+  'osk.cursor': 'Cursor',
+  'osk.ok': 'OK',
+  'osk.cancel': 'Cancel',
+
+  'browse.titleFile': 'Open a save file',
+  'browse.titleFolder': 'Choose a folder',
+  'browse.titleSave': 'Save as',
+  'browse.saves': 'Saves',
+  'browse.home': 'Home',
+  'browse.drive': 'Drive',
+  'browse.media': 'Removable storage',
+  'browse.up': 'Up',
+  'browse.empty': 'Nothing to show here.',
+  'browse.name': 'File name',
+  'browse.chooseFolder': 'Choose this folder',
+  'browse.saveHere': 'Save here',
+  'browse.cancel': 'Cancel'
 } as const;
 
 export type Key = keyof typeof en;
@@ -760,7 +796,43 @@ const tr: Record<Key, string> = {
   'stats.spell': 'Büyü',
   'stats.uses': 'Attunement\'a göre kullanım',
   'stats.infusion': 'Infusion bu değerleri değiştirir; burada eşyanın infusion\'sız hali gösteriliyor.',
-  'stats.show': 'Statları göster'
+  'stats.show': 'Statları göster',
+
+  'pad.select': 'Seç',
+  'pad.back': 'Geri',
+  'pad.tabs': 'Sekme',
+  'pad.panels': 'Panel',
+  'pad.save': 'Kaydet',
+  'pad.settings': 'Ayarlar',
+  'pad.detected': 'Algılanan kol',
+  'pad.none': 'Yok. Bir kolun herhangi bir tuşuna basıldığında kontrolü o devralır.',
+  'pad.quit': 'Çık',
+  'pad.quitHint': 'DS2 Save Manager\'ı kapatır.',
+  'pad.quitConfirm': 'DS2 Save Manager kapatılsın mı?',
+  'pad.quitUnsaved': 'Kaydedilmemiş değişiklikler var; çıkarsanız kaybolur. DS2 Save Manager kapatılsın mı?',
+
+  'osk.title': 'Klavye',
+  'osk.type': 'Yaz',
+  'osk.delete': 'Sil',
+  'osk.space': 'Boşluk',
+  'osk.shift': 'Büyük harf',
+  'osk.cursor': 'İmleç',
+  'osk.ok': 'Tamam',
+  'osk.cancel': 'İptal',
+
+  'browse.titleFile': 'Kayıt dosyası aç',
+  'browse.titleFolder': 'Klasör seç',
+  'browse.titleSave': 'Farklı kaydet',
+  'browse.saves': 'Kayıtlar',
+  'browse.home': 'Ev klasörü',
+  'browse.drive': 'Sürücü',
+  'browse.media': 'Çıkarılabilir depolama',
+  'browse.up': 'Üst klasör',
+  'browse.empty': 'Burada gösterilecek bir şey yok.',
+  'browse.name': 'Dosya adı',
+  'browse.chooseFolder': 'Bu klasörü seç',
+  'browse.saveHere': 'Buraya kaydet',
+  'browse.cancel': 'İptal'
 };
 
 export type Lang = 'tr' | 'en';

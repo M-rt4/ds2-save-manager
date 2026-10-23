@@ -3,9 +3,11 @@
 mod commands;
 mod commands_about;
 mod commands_backups;
+mod commands_files;
 mod commands_games;
 mod conversion;
 mod commands_raw;
+mod gamepad;
 
 use tauri::{WebviewUrl, WebviewWindowBuilder};
 
@@ -14,6 +16,7 @@ fn main() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .manage(commands::AppState::default())
+        .manage(gamepad::Pads::default())
         .setup(|app| {
             let title = match commands_about::dev_label() {
                 Some(label) => format!("DS2 Save Manager (dev: {label})"),
@@ -32,6 +35,7 @@ fn main() {
                 window = window.always_on_top(true).focused(false);
             }
             window.build()?;
+            gamepad::start(app.handle());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -62,6 +66,9 @@ fn main() {
             commands_raw::raw_read,
             commands_raw::raw_write,
             commands_raw::raw_find,
+            gamepad::gamepads,
+            commands_files::browse_places,
+            commands_files::list_dir,
         ])
         .run(tauri::generate_context!())
         .expect("error while running DS2 Save Manager");

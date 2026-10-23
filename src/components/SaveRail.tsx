@@ -1,5 +1,5 @@
-import { open } from '@tauri-apps/plugin-dialog';
 import { revealItemInDir } from '@tauri-apps/plugin-opener';
+import { choosePath } from '../browse';
 import { gamesApi, isSaveError, type FoundSave, type GameInfo, type GameSave, type Install, type InstallSource } from '../api';
 import { useStore } from '../store';
 import { errorText, useT, type Key, type Lang } from '../i18n';
@@ -51,13 +51,13 @@ export function SaveRail() {
   const root = games.find((g) => g.savesRoot)?.savesRoot ?? null;
 
   const pick = async () => {
-    const path = await open({ multiple: false, filters: [{ name: 'Dark Souls II save', extensions: ['sl2'] }] });
-    if (typeof path === 'string') await openSave(path);
+    const path = await choosePath({ mode: 'file', extensions: ['sl2'], filterName: 'Dark Souls II save', defaultPath: root ?? undefined });
+    if (path) await openSave(path);
   };
 
   const addFolder = async () => {
-    const dir = await open({ directory: true, multiple: false });
-    if (typeof dir !== 'string') return;
+    const dir = await choosePath({ mode: 'folder' });
+    if (!dir) return;
     try {
       const list = await gamesApi.addGameFolder(dir);
       setGames(list);
@@ -89,7 +89,7 @@ export function SaveRail() {
         {root && (
           <div className="games-root">
             <div className="group-label">{t('games.savesRoot')}</div>
-            <button className="place" title={t('file.reveal')} onClick={() => reveal(root)}>
+            <button className="place" data-external title={t('file.reveal')} onClick={() => reveal(root)}>
               {root}
             </button>
           </div>
@@ -159,7 +159,7 @@ function GameSection({ game, onAdd, onForget }: { game: GameInfo; onAdd: () => v
             </div>
             {!i.exe && <div className="game-warn">{t('games.exeMissing')}</div>}
             <div className="install-actions">
-              <button className="btn quiet" onClick={() => reveal(i.exe ?? i.path)}>
+              <button className="btn quiet" data-external onClick={() => reveal(i.exe ?? i.path)}>
                 {t('file.reveal')}
               </button>
               {i.source === 'manual' && (

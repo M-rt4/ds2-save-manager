@@ -455,7 +455,7 @@ function RawEditor({ doc }: { doc: SaveView }) {
               </thead>
               <tbody>
                 {chunks.map((c) => (
-                  <tr key={c.offset} className={where === c ? 'cur' : ''} onClick={() => jump(index, c.offset)}>
+                  <tr key={c.offset} className={where === c ? 'cur' : ''} tabIndex={-1} data-pad onClick={() => jump(index, c.offset)}>
                     <td>{c.kind.toString(16).toUpperCase()}</td>
                     <td>{c.version.toString(16).toUpperCase()}</td>
                     <td>{hex(c.offset, 4)}</td>

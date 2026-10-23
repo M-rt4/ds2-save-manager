@@ -26,7 +26,7 @@ export function FileTab({ doc }: { doc: SaveView }) {
         <div className="k">{t('file.path')}</div>
         <div className="v">
           {doc.path}{' '}
-          <button className="btn quiet" style={{ padding: '0 6px', fontSize: 14 }} onClick={() => void revealItemInDir(doc.path)}>
+          <button className="btn quiet" data-external style={{ padding: '0 6px', fontSize: 14 }} onClick={() => void revealItemInDir(doc.path)}>
             {t('file.reveal')}
           </button>
         </div>
