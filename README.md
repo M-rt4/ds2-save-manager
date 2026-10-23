@@ -9,16 +9,18 @@ Asıl amaç: orijinal sürümde başlanmış bir yolculuğa Scholar of the First
 
 ## Neler yapıyor
 
-- `%APPDATA%\DarkSoulsII` altındaki hesap klasörlerini tarar, iki sürümün kayıtlarını da listeler; başka bir yerdeki `.sl2` dosyası da açılabilir. Sürüm dosya adından değil, kaydı hangi anahtarın açtığından anlaşılır.
+- **Oyunlar paneli** (solda): kurulu her sürüm, nereye kurulu olduğu (Steam kütüphaneleri, kurulum kayıtları ya da elle eklenen klasörler), oyun ve regulation sürümü; her hesap klasöründeki kayıt ve içindeki karakterler. Başka bir yerdeki `.sl2` dosyası da açılabilir. Sürüm dosya adından değil, kaydı hangi anahtarın açtığından anlaşılır.
 - **Durum**: ad, souls, yolculuk (NG+), dokuz nitelik. Değişiklikler oyundaki Level Up ekranı gibi gösterilir: değişen değerler mavi, düşen türetilmiş değerler kırmızı; Soul Level niteliklerden hesaplanır (toplam − 53). Load Game menüsündeki kayıt (ad, seviye, nitelikler) da birlikte güncellenir.
-- **Envanter**: kategoriler, +N güçlendirme, infusion, Estus dolumları; adet değiştirme, eşya kaldırma ve ekleme (anahtar eşyalar ve jestler salt okunur).
-- **Aktarım**:
-  - *Kaydın tamamı*: dosyayı diğer sürümün anahtarıyla yeniden şifreleyip yazar. Hedef dosya varsa iki yol sunar: dosyayı tamamen değiştirmek ya da hedefin kendi sistem verisini koruyup on yuvasını kaynağınkiyle değiştirmek (önerilen).
-  - *Tek karakter*: bir karakteri (karakter bloğu, dünya bloğu ve menü kaydıyla birlikte) var olan bir kaydın istenen yuvasına kopyalar; sürümler arası da çalışır.
-  - Kayıt başka bir hesabın klasörüne yazılıyorsa Steam hesabı alanı o klasöre göre yeniden imzalanır.
+- **Envanter**: oyunun kendi eşya simgeleri, kategoriler, +N güçlendirme, infusion, Estus dolumları; adet değiştirme, kaldırma ve ayrı bir katalogdan ekleme (anahtar eşyalar ve jestler salt okunur). Her eşyanın oyundaki değerleri (saldırı ve savunma, gereksinimler, ölçekleme harfleri, ağırlık, dayanıklılık) ve açıklaması. Kaydedilmemiş değişiklikler satırlarda işaretlenir: yeni, değişti (eski → yeni değerle) ve kaldırıldı; her biri tek tıkla geri alınabilir.
+- **Aktarım**: kaydın tamamını ya da tek bir karakteri diğer sürüme ya da başka bir kayda taşır. Yazılan kayıt hedef oyunun beklediği her şeyi taşır: anahtarı, oyun sürümüyle damgalı regulation kopyası ve bölüm düzeni. Hedefin biçimi kurulu oyundan, hedef dosyadan ya da başka bir yerel kayıttan okunur. Ekran neyin nereye, hangi oyun ve hangi hesap için yazılacağını adım adım gösterir; yazmadan önce ve sonra her değişikliği listeler. Aktarımdan sonra gelen değişiklik raporu Ayarlar'dan kapatılabilir.
+- **Hesap kimliği**: oyun yalnızca klasörünün Steam hesabına imzalı kaydı yükler. Aktarılan kayıt hedef klasörün hesabını alır; istenirse elle bir SteamID64 girilir (klasörünkinden farklıysa uyarılır). Dosya sekmesi kaydın ve klasörünün hesabını yan yana gösterir.
+- **Kurulu oyuna uydur** (Dosya sekmesi): başka bir araçla dönüştürülmüş ya da başka bir oyuncudan gelmiş, oyunun "The game version and save data version are different" diye reddettiği kaydı kurulu oyuna ve klasörün hesabına göre onarır.
+- **Yedekler**: her yazmadan önce alınan yedekler nedenleriyle listelenir (elle, kaydetmeden önce, aktarımdan önce, geri yüklemeden önce); elle yedek alınabilir, bir yedek geri yüklenebilir ya da silinebilir.
+- **Ham veri**: risklerini anlatan bir uyarıdan sonra kaydın tamamı okunur JSON olarak gösterilir. Metin olarak düzenlenebilir, uygulanmadan önce fark ve hata listesiyle denetlenir, `.json` olarak dışa ve içe aktarılabilir. Ayrıca şifresi çözülmüş blokların bayt görünümü (hex düzenleme, arama) vardır.
 - **Dosya**: Steam hesabı, sağlama toplamları ve her bloğun parça/sürüm tablosu (orijinal ve Scholar kayıtlarını karşılaştırmak için).
+- **Ayarlar**: dil, aktarım raporu, oyun klasörleri ve Hakkında (uygulama, sistem ve kurulu oyunların sürümleri).
 
-Güvenlik: oyun açıkken yazma kapalıdır; dosya açıldıktan sonra oyun tarafından değiştirildiyse yazılmaz; her yazmadan önce önceki dosya kaydın yanındaki `DS2 Save Manager Backups` klasörüne zaman damgasıyla yedeklenir; yazılan dosya diske gitmeden önce yeniden okunup doğrulanır.
+Güvenlik: oyun açıkken yazma kapalıdır; dosya açıldıktan sonra oyun tarafından değiştirildiyse ne yazılır ne de aktarılır; her yazmadan önce önceki dosya kaydın yanındaki `DS2 Save Manager Backups` klasörüne yedeklenir; yazılan dosya diske gitmeden önce yeniden okunup doğrulanır.
 
 ## Platformlar
 
@@ -32,14 +34,14 @@ Windows, Linux ve Steam Deck. Konsollar kapsam dışı.
 
 ## Kayıt formatı
 
-`.sl2` bir BND4 arşividir; 23 bölümün her biri `[MD5][IV][AES-128-CBC]` olarak şifrelidir. İki sürüm **aynı düzeni** kullanır, yalnızca anahtar farklıdır:
+`.sl2` bir BND4 arşividir; 23 bölümün her biri `[MD5][IV][AES-128-CBC]` olarak şifrelidir. İki sürüm karakter ve dünya verisinde **aynı düzeni** kullanır; farklı olanlar anahtar, 21. bölümün içeriği ve boyutu (Scholar 2 MB, orijinal 1 MB) ve 22. bölümdeki listenin sürüm numarasıdır:
 
 | Bölüm | İçerik |
 |---|---|
 | 0 | Menü verisi: Steam hesabı (16 hex karakter), Load Game listesi (10 × 496 bayt) |
 | 1–10 | Karakterler: nitelikler, souls, ad, envanter (16 baytlık kayıtlar) |
 | 11–20 | Dünya durumu: bayraklar, bonfire'lar, harita ilerlemesi |
-| 21 | Sıkıştırılmış sistem verisi |
+| 21 | Oyunun regulation verisinin zlib ile sıkıştırılmış kopyası, oyun sürümüyle damgalı; oyun bunu kendi sürümüyle karşılaştırır |
 | 22 | Load Game listesinin ikinci kopyası |
 
 Her bölüm, `[tür][sürüm][boyut]` başlıklı parçalardan oluşur; uygulama düzenlemeden ya da aktarmadan önce bu parça tablosunu doğrular. Oyunun yazdığı gerçek bir Scholar kaydı değiştirilmeden yeniden kodlandığında bayt bayt aynı çıkıyor.
