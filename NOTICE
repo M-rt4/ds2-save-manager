@@ -1,0 +1,29 @@
+DS2 Save Manager
+Copyright 2026 Mert
+
+This project builds on the work of others:
+
+- darthdemono/sl2-analyzer (https://github.com/darthdemono/sl2-analyzer), Apache License 2.0,
+  Copyright 2026 Jubair Hasan (DarthDemono).
+  Used: the db_ds2 item tables (flattened into src-tauri/data/items.json by
+  scripts/build-item-db.mjs, with shields split into their own category and armour slots added),
+  the finding that both Dark Souls II releases share one save layout, character field offsets
+  (class, covenant, gender, hollowing, deaths, play time in the title record), and the derived-stat
+  curves ported to src/game.ts.
+
+- alfizari/Dark-Souls-2-Save-Editor-PS4-PC (https://github.com/alfizari/Dark-Souls-2-Save-Editor-PS4-PC),
+  MIT License, Copyright (c) 2024 Ahmed.
+  Used as the reference for the SL2 entry layout, the Scholar of the First Sin key, the name,
+  souls, attribute and inventory offsets, and default durabilities for new inventory records.
+  Its decrypted sample save is used, outside the repository, for local tests.
+
+- TKGP/SoulsFormats (https://github.com/JKAnderson/SoulsFormats): the two AES-128 save keys
+  (SFUtil.GetDS2SaveKey and SFUtil.GetScholarSaveKey), which ship inside the games.
+
+- The menu font (src/public/fonts/ds2-menu.woff2) is traced from the bitmap font atlas that Dark
+  Souls II itself ships (font/*/FeFont_Big.fontbnd.dcx) by scripts/build-game-font.py. The glyph
+  designs belong to their owners (FromSoftware / Bandai Namco); the file is kept for this private
+  project only. EB Garamond and Cinzel (SIL Open Font License) are bundled as fallbacks.
+
+Dark Souls is a trademark of Bandai Namco Entertainment / FromSoftware. This project is not
+affiliated with or endorsed by them.

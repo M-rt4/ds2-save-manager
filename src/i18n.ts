@@ -1,0 +1,375 @@
+import { useStore } from './store';
+
+// The game has no Turkish text, so game terms (attributes, items, areas, classes)
+// stay in English in both languages; only the app's own words are translated.
+
+const en = {
+  'app.subtitle': 'Save Manager',
+  'window.minimize': 'Minimize',
+  'window.maximize': 'Maximize',
+  'window.close': 'Close',
+
+  'rail.title': 'Saves',
+  'rail.account': 'Account {id}',
+  'rail.otherFolder': 'Other folder',
+  'rail.none': 'No Dark Souls II saves were found in %APPDATA%\\DarkSoulsII. Start the game once, or open a save file from elsewhere.',
+  'rail.open': 'Open a save file',
+  'rail.rescan': 'Look again',
+  'rail.modified': 'Saved {when}',
+
+  'edition.original': 'Dark Souls II',
+  'edition.scholar': 'Scholar of the First Sin',
+  'edition.originalShort': 'Original',
+  'edition.scholarShort': 'Scholar',
+
+  'slots.title': 'Characters',
+  'slots.empty': 'Empty slot',
+  'slots.ghost': 'Deleted in game',
+  'slots.last': 'Continue',
+  'slots.level': 'Lv {n}',
+  'slots.noSave': 'Choose a save on the left.',
+
+  'tab.status': 'Status',
+  'tab.inventory': 'Inventory',
+  'tab.transfer': 'Transfer',
+  'tab.file': 'File',
+
+  'status.name': 'Name',
+  'status.level': 'Soul Level',
+  'status.souls': 'Souls',
+  'status.soulMemory': 'Soul Memory',
+  'status.class': 'Class',
+  'status.covenant': 'Covenant',
+  'status.journey': 'Journey',
+  'status.playTime': 'Play time',
+  'status.location': 'Last bonfire area',
+  'status.deaths': 'Deaths',
+  'status.hollowing': 'Hollowing',
+  'status.attributes': 'Attributes',
+  'status.derived': 'Base values',
+  'status.derivedNote': 'Before rings and equipment, as on the Level Up screen.',
+  'status.levelRule': 'Soul Level follows the attributes (their sum minus 53).',
+  'status.none': 'None',
+  'status.covenants': 'Covenants',
+  'status.rank': 'Rank {n}',
+  'status.discovered': 'Joined',
+  'status.layout': 'This character uses a layout the editor does not recognise, so it is read-only.',
+  'status.emptySlot': 'This slot has no character. Pick another, or bring one here from the Transfer tab.',
+
+  'inv.title': 'Inventory',
+  'inv.search': 'Search items',
+  'inv.all': 'All',
+  'inv.count': '{n} items',
+  'inv.free': '{n} free places',
+  'inv.unknown': '{n} unknown ids',
+  'inv.add': 'Add item',
+  'inv.remove': 'Remove',
+  'inv.empty': 'Nothing here.',
+  'inv.quantity': 'Quantity',
+  'inv.reinforcement': 'Reinforcement',
+  'inv.infusion': 'Infusion',
+  'inv.durability': 'Durability {n}',
+  'inv.charges': '{cur}/{max} charges',
+  'inv.readOnly': 'Key items and gestures can be viewed but not changed.',
+  'inv.addTitle': 'Add an item',
+  'inv.addConfirm': 'Add to inventory',
+  'inv.addWarning': 'Add a few items at a time. The game has limits per category, and a flood of new items can damage the save.',
+  'inv.none': 'No item matches.',
+
+  'cat.weapon': 'Weapons',
+  'cat.shield': 'Shields',
+  'cat.armor': 'Armor',
+  'cat.ring': 'Rings',
+  'cat.spell': 'Spells',
+  'cat.consumable': 'Consumables',
+  'cat.multiplayer': 'Multiplayer',
+  'cat.upgrade': 'Upgrade materials',
+  'cat.ammo': 'Arrows and bolts',
+  'cat.bossSoul': 'Boss souls',
+  'cat.key': 'Key items',
+  'cat.gesture': 'Gestures',
+  'cat.unknown': 'Unknown',
+
+  'footer.save': 'Save changes',
+  'footer.revert': 'Discard changes',
+  'footer.unsaved': 'Unsaved changes',
+  'footer.saved': 'All changes saved',
+  'footer.gameRunning': 'Dark Souls II is running. Saving is disabled until you quit to the desktop.',
+  'footer.backupNote': 'Every write keeps a backup of the previous file.',
+
+  'transfer.title': 'Carry this journey',
+  'transfer.lead': 'Both releases keep the same save structure and only lock it with different keys. Moving a save re-encrypts it for the other release; nothing about the character changes.',
+  'transfer.whole': 'Whole save',
+  'transfer.wholeHint': 'All ten slots, as one file.',
+  'transfer.single': 'One character',
+  'transfer.singleHint': 'Into a slot of an existing save.',
+  'transfer.from': 'From',
+  'transfer.to': 'To',
+  'transfer.targetFile': 'Target file',
+  'transfer.choose': 'Choose…',
+  'transfer.exists': 'This file exists. Its characters:',
+  'transfer.new': 'This file does not exist yet; it will be created.',
+  'transfer.modeReplace': 'Replace the file',
+  'transfer.modeReplaceHint': 'Write the whole source save there. Characters already in it are lost (a backup is kept).',
+  'transfer.modeMerge': 'Keep the file, replace its characters',
+  'transfer.modeMergeHint': 'The target keeps its own options and system data; its ten slots become the source\'s. Recommended when the target release has already made this file.',
+  'transfer.slotFrom': 'Character',
+  'transfer.slotTo': 'Into slot',
+  'transfer.overwrite': 'Replaces {name}',
+  'transfer.intoEmpty': 'Empty slot',
+  'transfer.run': 'Transfer',
+  'transfer.runWhole': 'Write {file}',
+  'transfer.done': 'Written to {path}',
+  'transfer.backup': 'Previous file kept as {path}',
+  'transfer.versionNotes': 'Some data blocks carry different version numbers in the two files. The game has to accept them; keep the backup until you have loaded the character once.',
+  'transfer.systemSize': 'A system block differs in size between the files; the target keeps its own.',
+  'transfer.account': 'The save will be re-signed for the account of the target folder ({to}).',
+  'transfer.noTarget': 'Open or create a save of the target release first: one character can only go into an existing file.',
+  'transfer.needsTarget': 'Single characters go into an existing save. Start the target release once to create one, or transfer the whole save.',
+  'transfer.incompatible': 'These saves can\'t exchange characters:',
+  'transfer.targetUnreadable': 'The target file can\'t be read: {msg}',
+  'transfer.sameFile': 'Pick a target other than the source.',
+  'transfer.dirtyTarget': 'The target is open here with unsaved changes; they will be replaced.',
+  'transfer.tip': 'To continue an original-release character in Scholar of the First Sin: start Scholar once and create any character so the game makes its save, then transfer here with "Keep the file, replace its characters".',
+
+  'file.title': 'Save file',
+  'file.path': 'Location',
+  'file.edition': 'Release',
+  'file.account': 'Steam account',
+  'file.folderAccount': 'Folder account',
+  'file.accountMismatch': 'The save names a different account than its folder. The game only loads saves signed for the account whose folder they are in.',
+  'file.setAccount': 'Sign for the folder\'s account',
+  'file.checksums': 'Checksums',
+  'file.checksumsOk': 'All {n} entries intact',
+  'file.checksumsBad': 'Damaged entries: {list}',
+  'file.reveal': 'Show in Explorer',
+  'file.entries': 'Data blocks',
+  'file.entriesNote': 'Each block is a run of typed, versioned chunks. Comparing these between an original and a Scholar save shows what differs.',
+  'file.size': '{n} bytes',
+
+  'confirm.yes': 'Yes',
+  'confirm.no': 'No',
+  'confirm.discard': 'Discard the unsaved changes to {file}?',
+  'confirm.transfer': 'Write {file}? The current file is backed up first.',
+  'confirm.single': 'Put {name} into slot {slot} of {file}?',
+
+  'toast.saved': 'Saved. Backup: {path}',
+  'toast.savedNoBackup': 'Saved.',
+  'toast.reverted': 'Changes discarded.',
+
+  'err.gameRunning': 'Dark Souls II is running. Quit to the desktop, then try again.',
+  'err.changedOnDisk': 'The game wrote this save after it was opened. Discard changes to load the new file.',
+  'err.notSave': 'This is not a save file.',
+  'err.notDs2': 'This is not a Dark Souls II save.',
+  'err.unknownKey': 'This looks like a Dark Souls II save, but neither release\'s key opens it.',
+  'err.corrupt': 'Part of this save does not decrypt cleanly.',
+  'err.inventoryFull': 'The inventory has no free place.',
+  'err.badName': 'Names are 1 to 16 characters.',
+  'err.badAttribute': 'Attributes are between 1 and 99.',
+  'err.layout': 'This character uses an unknown layout and can\'t be edited.',
+
+  'lang.switch': 'Türkçe'
+} as const;
+
+export type Key = keyof typeof en;
+
+const tr: Record<Key, string> = {
+  'app.subtitle': 'Kayıt Yöneticisi',
+  'window.minimize': 'Simge durumuna küçült',
+  'window.maximize': 'Ekranı kapla',
+  'window.close': 'Kapat',
+
+  'rail.title': 'Kayıtlar',
+  'rail.account': 'Hesap {id}',
+  'rail.otherFolder': 'Diğer klasör',
+  'rail.none': '%APPDATA%\\DarkSoulsII içinde Dark Souls II kaydı bulunamadı. Oyunu bir kez başlatın ya da başka bir yerdeki kayıt dosyasını açın.',
+  'rail.open': 'Kayıt dosyası aç',
+  'rail.rescan': 'Yeniden tara',
+  'rail.modified': '{when} kaydedildi',
+
+  'edition.original': 'Dark Souls II',
+  'edition.scholar': 'Scholar of the First Sin',
+  'edition.originalShort': 'Orijinal',
+  'edition.scholarShort': 'Scholar',
+
+  'slots.title': 'Karakterler',
+  'slots.empty': 'Boş yuva',
+  'slots.ghost': 'Oyunda silinmiş',
+  'slots.last': 'Devam',
+  'slots.level': 'Sv {n}',
+  'slots.noSave': 'Soldan bir kayıt seçin.',
+
+  'tab.status': 'Durum',
+  'tab.inventory': 'Envanter',
+  'tab.transfer': 'Aktarım',
+  'tab.file': 'Dosya',
+
+  'status.name': 'Ad',
+  'status.level': 'Soul Level',
+  'status.souls': 'Souls',
+  'status.soulMemory': 'Soul Memory',
+  'status.class': 'Sınıf',
+  'status.covenant': 'Covenant',
+  'status.journey': 'Yolculuk',
+  'status.playTime': 'Oyun süresi',
+  'status.location': 'Son bonfire bölgesi',
+  'status.deaths': 'Ölüm',
+  'status.hollowing': 'Hollowing',
+  'status.attributes': 'Nitelikler',
+  'status.derived': 'Temel değerler',
+  'status.derivedNote': 'Yüzük ve ekipman hariç, Level Up ekranındaki gibi.',
+  'status.levelRule': 'Soul Level niteliklere bağlıdır (toplamları eksi 53).',
+  'status.none': 'Yok',
+  'status.covenants': 'Covenant\'lar',
+  'status.rank': 'Rütbe {n}',
+  'status.discovered': 'Katıldı',
+  'status.layout': 'Bu karakterin veri düzeni tanınmıyor; yalnızca görüntülenebilir.',
+  'status.emptySlot': 'Bu yuvada karakter yok. Başka bir yuva seçin ya da Aktarım sekmesinden buraya bir karakter getirin.',
+
+  'inv.title': 'Envanter',
+  'inv.search': 'Eşya ara',
+  'inv.all': 'Tümü',
+  'inv.count': '{n} eşya',
+  'inv.free': '{n} boş yer',
+  'inv.unknown': '{n} bilinmeyen kimlik',
+  'inv.add': 'Eşya ekle',
+  'inv.remove': 'Kaldır',
+  'inv.empty': 'Burada bir şey yok.',
+  'inv.quantity': 'Adet',
+  'inv.reinforcement': 'Güçlendirme',
+  'inv.infusion': 'Infusion',
+  'inv.durability': 'Dayanıklılık {n}',
+  'inv.charges': '{cur}/{max} dolum',
+  'inv.readOnly': 'Anahtar eşyalar ve jestler görüntülenebilir, değiştirilemez.',
+  'inv.addTitle': 'Eşya ekle',
+  'inv.addConfirm': 'Envantere ekle',
+  'inv.addWarning': 'Eşyaları birkaçar birkaçar ekleyin. Oyunun kategori başına sınırları var; bir anda çok sayıda yeni eşya kaydı bozabilir.',
+  'inv.none': 'Eşleşen eşya yok.',
+
+  'cat.weapon': 'Silahlar',
+  'cat.shield': 'Kalkanlar',
+  'cat.armor': 'Zırhlar',
+  'cat.ring': 'Yüzükler',
+  'cat.spell': 'Büyüler',
+  'cat.consumable': 'Sarf malzemeleri',
+  'cat.multiplayer': 'Çok oyunculu',
+  'cat.upgrade': 'Geliştirme malzemeleri',
+  'cat.ammo': 'Ok ve cıvatalar',
+  'cat.bossSoul': 'Boss ruhları',
+  'cat.key': 'Anahtar eşyalar',
+  'cat.gesture': 'Jestler',
+  'cat.unknown': 'Bilinmeyen',
+
+  'footer.save': 'Değişiklikleri kaydet',
+  'footer.revert': 'Değişikliklerden vazgeç',
+  'footer.unsaved': 'Kaydedilmemiş değişiklikler var',
+  'footer.saved': 'Tüm değişiklikler kaydedildi',
+  'footer.gameRunning': 'Dark Souls II açık. Masaüstüne çıkana kadar kaydetme kapalı.',
+  'footer.backupNote': 'Her yazmada önceki dosyanın yedeği saklanır.',
+
+  'transfer.title': 'Yolculuğu taşı',
+  'transfer.lead': 'İki sürüm de aynı kayıt yapısını kullanır, yalnızca farklı anahtarlarla kilitler. Taşımak, kaydı diğer sürümün anahtarıyla yeniden şifreler; karakterde hiçbir şey değişmez.',
+  'transfer.whole': 'Kaydın tamamı',
+  'transfer.wholeHint': 'On yuvanın hepsi, tek dosya olarak.',
+  'transfer.single': 'Tek karakter',
+  'transfer.singleHint': 'Var olan bir kaydın bir yuvasına.',
+  'transfer.from': 'Kaynak',
+  'transfer.to': 'Hedef',
+  'transfer.targetFile': 'Hedef dosya',
+  'transfer.choose': 'Seç…',
+  'transfer.exists': 'Bu dosya var. İçindeki karakterler:',
+  'transfer.new': 'Bu dosya henüz yok; oluşturulacak.',
+  'transfer.modeReplace': 'Dosyayı değiştir',
+  'transfer.modeReplaceHint': 'Kaynak kaydın tamamını oraya yazar. İçindeki karakterler kaybolur (yedek saklanır).',
+  'transfer.modeMerge': 'Dosyayı koru, karakterlerini değiştir',
+  'transfer.modeMergeHint': 'Hedef kendi ayarlarını ve sistem verisini korur; on yuvası kaynağınkiyle değişir. Hedef sürüm bu dosyayı zaten oluşturduysa önerilen yol budur.',
+  'transfer.slotFrom': 'Karakter',
+  'transfer.slotTo': 'Hedef yuva',
+  'transfer.overwrite': '{name} yerine geçer',
+  'transfer.intoEmpty': 'Boş yuva',
+  'transfer.run': 'Aktar',
+  'transfer.runWhole': '{file} dosyasını yaz',
+  'transfer.done': '{path} dosyasına yazıldı',
+  'transfer.backup': 'Önceki dosya {path} olarak saklandı',
+  'transfer.versionNotes': 'Bazı veri bloklarının sürüm numaraları iki dosyada farklı. Oyunun bunları kabul etmesi gerekiyor; karakteri bir kez yükleyene kadar yedeği silmeyin.',
+  'transfer.systemSize': 'Bir sistem bloğunun boyutu iki dosyada farklı; hedef kendi bloğunu korur.',
+  'transfer.account': 'Kayıt, hedef klasörün hesabı ({to}) için yeniden imzalanacak.',
+  'transfer.noTarget': 'Önce hedef sürümün bir kaydını açın ya da oluşturun: tek karakter yalnızca var olan bir dosyaya aktarılabilir.',
+  'transfer.needsTarget': 'Tek karakter var olan bir kayda aktarılır. Hedef sürümü bir kez başlatıp kayıt oluşturun ya da kaydın tamamını aktarın.',
+  'transfer.incompatible': 'Bu kayıtlar arasında karakter aktarılamaz:',
+  'transfer.targetUnreadable': 'Hedef dosya okunamadı: {msg}',
+  'transfer.sameFile': 'Kaynaktan farklı bir hedef seçin.',
+  'transfer.dirtyTarget': 'Hedef burada açık ve kaydedilmemiş değişiklikleri var; bunların yerine yazılacak.',
+  'transfer.tip': 'Orijinal sürümdeki bir karakterle Scholar of the First Sin\'de devam etmek için: Scholar\'ı bir kez başlatıp herhangi bir karakter oluşturun ki oyun kendi kaydını yazsın, sonra burada "Dosyayı koru, karakterlerini değiştir" ile aktarın.',
+
+  'file.title': 'Kayıt dosyası',
+  'file.path': 'Konum',
+  'file.edition': 'Sürüm',
+  'file.account': 'Steam hesabı',
+  'file.folderAccount': 'Klasörün hesabı',
+  'file.accountMismatch': 'Kayıt, bulunduğu klasörden farklı bir hesabı gösteriyor. Oyun yalnızca klasörünün hesabına imzalı kayıtları yükler.',
+  'file.setAccount': 'Klasörün hesabına imzala',
+  'file.checksums': 'Sağlama toplamları',
+  'file.checksumsOk': '{n} bölümün hepsi sağlam',
+  'file.checksumsBad': 'Bozuk bölümler: {list}',
+  'file.reveal': 'Gezginde göster',
+  'file.entries': 'Veri blokları',
+  'file.entriesNote': 'Her blok, tür ve sürüm etiketli parçalardan oluşur. Orijinal ve Scholar kayıtlarını burada karşılaştırınca neyin farklı olduğu görünür.',
+  'file.size': '{n} bayt',
+
+  'confirm.yes': 'Evet',
+  'confirm.no': 'Hayır',
+  'confirm.discard': '{file} üzerindeki kaydedilmemiş değişikliklerden vazgeçilsin mi?',
+  'confirm.transfer': '{file} yazılsın mı? Mevcut dosya önce yedeklenir.',
+  'confirm.single': '{name}, {file} dosyasının {slot}. yuvasına konsun mu?',
+
+  'toast.saved': 'Kaydedildi. Yedek: {path}',
+  'toast.savedNoBackup': 'Kaydedildi.',
+  'toast.reverted': 'Değişikliklerden vazgeçildi.',
+
+  'err.gameRunning': 'Dark Souls II açık. Masaüstüne çıkıp yeniden deneyin.',
+  'err.changedOnDisk': 'Oyun bu kaydı, dosya açıldıktan sonra yazdı. Yeni dosyayı yüklemek için değişikliklerden vazgeçin.',
+  'err.notSave': 'Bu bir kayıt dosyası değil.',
+  'err.notDs2': 'Bu bir Dark Souls II kaydı değil.',
+  'err.unknownKey': 'Bu bir Dark Souls II kaydına benziyor ama iki sürümün anahtarı da açmıyor.',
+  'err.corrupt': 'Bu kaydın bir bölümü düzgün çözülemiyor.',
+  'err.inventoryFull': 'Envanterde boş yer yok.',
+  'err.badName': 'Ad 1 ile 16 karakter arasında olmalı.',
+  'err.badAttribute': 'Nitelikler 1 ile 99 arasında olmalı.',
+  'err.layout': 'Bu karakterin veri düzeni bilinmiyor; düzenlenemez.',
+
+  'lang.switch': 'English'
+};
+
+export type Lang = 'tr' | 'en';
+const dicts: Record<Lang, Record<Key, string>> = { en, tr };
+
+export function translate(lang: Lang, key: Key, vars?: Record<string, string | number>): string {
+  let s = dicts[lang][key] ?? en[key];
+  if (vars) for (const [k, v] of Object.entries(vars)) s = s.replaceAll(`{${k}}`, String(v));
+  return s;
+}
+
+export function useT() {
+  const lang = useStore((s) => s.lang);
+  return (key: Key, vars?: Record<string, string | number>) => translate(lang, key, vars);
+}
+
+export function initialLang(): Lang {
+  try {
+    const saved = localStorage.getItem('lang');
+    if (saved === 'tr' || saved === 'en') return saved;
+  } catch {
+    /* storage unavailable */
+  }
+  return navigator.language.toLowerCase().startsWith('tr') ? 'tr' : 'en';
+}
+
+/** A save error in the user's language, falling back to the engine's English text. */
+export function errorText(lang: Lang, e: unknown): string {
+  if (typeof e === 'object' && e && 'code' in e && 'message' in e) {
+    const key = `err.${(e as { code: string }).code}` as Key;
+    return key in en ? translate(lang, key) : String((e as { message: string }).message);
+  }
+  return String(e);
+}

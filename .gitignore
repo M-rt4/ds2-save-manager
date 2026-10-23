@@ -1,0 +1,10 @@
+node_modules/
+dist/
+src-tauri/target/
+src-tauri/gen/
+*.log
+.DS_Store
+# Real saves never go into the repo.
+*.sl2
+*.sl2.bak
+__pycache__/

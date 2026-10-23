@@ -1,0 +1,35 @@
+{
+  "name": "ds2-save-manager",
+  "version": "0.1.0",
+  "description": "Dark Souls II save manager: edit, convert and transfer saves between the original game and Scholar of the First Sin.",
+  "author": "Mert",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tauri dev",
+    "dev:web": "vite",
+    "build:web": "vite build",
+    "build": "tauri build",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "icon": "tauri icon build/icon.svg -o src-tauri/icons",
+    "items": "node scripts/build-item-db.mjs",
+    "check": "tsc --noEmit -p tsconfig.json && cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings && cargo test --manifest-path src-tauri/Cargo.toml"
+  },
+  "devDependencies": {
+    "@fontsource/cinzel": "^5.2.0",
+    "@fontsource/eb-garamond": "^5.2.0",
+    "@tauri-apps/api": "^2.12.4",
+    "@tauri-apps/cli": "^2.12.3",
+    "@tauri-apps/plugin-dialog": "^2.4.0",
+    "@tauri-apps/plugin-opener": "^2.5.0",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "typescript": "^7.0.2",
+    "vite": "^7.0.0",
+    "zustand": "^5.0.15"
+  }
+}

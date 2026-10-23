@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <radialGradient id="ember" cx="50%" cy="78%" r="62%">
+      <stop offset="0" stop-color="#ffb347" stop-opacity="0.95"/>
+      <stop offset="0.28" stop-color="#e2611c" stop-opacity="0.75"/>
+      <stop offset="0.62" stop-color="#5a1d0a" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="blade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f4efe2"/>
+      <stop offset="0.7" stop-color="#b9b2a2"/>
+      <stop offset="1" stop-color="#ffcf8a"/>
+    </linearGradient>
+    <linearGradient id="frame" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#d9d1bd"/>
+      <stop offset="1" stop-color="#7d7462"/>
+    </linearGradient>
+  </defs>
+  <rect x="16" y="16" width="480" height="480" rx="96" fill="#0b0a0c"/>
+  <rect x="16" y="16" width="480" height="480" rx="96" fill="url(#ember)"/>
+  <rect x="34" y="34" width="444" height="444" rx="80" fill="none" stroke="url(#frame)" stroke-width="6" opacity="0.8"/>
+  <!-- Coiled sword: blade with a spiral twist, crossguard and pommel. -->
+  <path d="M256 70 L272 108 L272 352 L240 352 L240 108 Z" fill="url(#blade)"/>
+  <path d="M240 150 C292 162 292 186 240 198 C188 210 188 234 240 246 C292 258 292 282 240 294 C188 306 188 330 240 342"
+        fill="none" stroke="#2a1a10" stroke-width="10" stroke-linecap="round" opacity="0.85"/>
+  <rect x="200" y="352" width="112" height="16" rx="6" fill="#d9d1bd"/>
+  <rect x="248" y="368" width="16" height="44" fill="#8a7f6b"/>
+  <circle cx="256" cy="420" r="14" fill="#d9d1bd"/>
+  <!-- Flames at the hilt. -->
+  <path d="M206 452 C214 418 236 408 238 382 C254 404 248 424 262 438 C266 414 282 404 286 386 C304 414 316 436 304 456 Z"
+        fill="#ff9d3c" opacity="0.9"/>
+  <path d="M232 456 C238 434 252 428 254 412 C264 428 262 440 272 448 C276 436 284 430 286 420 C296 440 296 452 290 460 Z"
+        fill="#ffe2a8" opacity="0.9"/>
+</svg>
