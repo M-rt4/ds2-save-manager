@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { open, save as saveDialog } from '@tauri-apps/plugin-dialog';
+import { choosePath } from '../browse';
 import { api, documentApi, type DocPlace, type DocPreview, type SaveView } from '../api';
 import { draftEdit, useStore } from '../store';
 import { useT } from '../i18n';
@@ -136,9 +136,11 @@ export function JsonView({ doc }: { doc: SaveView }) {
     });
 
   const exportFile = async () => {
-    const path = await saveDialog({
+    const path = await choosePath({
+      mode: 'save',
       defaultPath: `${doc.fileName.replace(/\.sl2$/i, '')}.json`,
-      filters: [{ name: 'JSON', extensions: ['json'] }]
+      extensions: ['json'],
+      filterName: 'JSON'
     });
     if (!path) return;
     try {
@@ -150,8 +152,8 @@ export function JsonView({ doc }: { doc: SaveView }) {
   };
 
   const importFile = async () => {
-    const path = await open({ multiple: false, filters: [{ name: 'JSON', extensions: ['json'] }] });
-    if (typeof path !== 'string') return;
+    const path = await choosePath({ mode: 'file', extensions: ['json'], filterName: 'JSON' });
+    if (!path) return;
     const go = async () => {
       try {
         setText(await documentApi.readFile(path));

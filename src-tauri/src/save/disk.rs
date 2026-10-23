@@ -146,6 +146,10 @@ pub fn write_atomic(path: &Path, bytes: &[u8]) -> Result<()> {
 
 /// Whether a Dark Souls II process (either release, both ship `DarkSoulsII.exe`) runs.
 pub fn game_running() -> bool {
+    // Debug test copies whose saves root is a scratch tree may write while the user plays.
+    if cfg!(debug_assertions) && std::env::var_os("DS2SM_SAVES_ROOT").is_some() && std::env::var_os("DS2SM_IGNORE_GAME").is_some() {
+        return false;
+    }
     #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt;

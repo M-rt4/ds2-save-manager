@@ -6,6 +6,8 @@ import { SlotList } from './components/SlotList';
 import { Detail } from './components/Detail';
 import { Footer } from './components/Footer';
 import { Overlays } from './components/Overlays';
+import { FileBrowser } from './components/FileBrowser';
+import { PadKeyboard } from './components/PadKeyboard';
 
 export function App() {
   const lang = useStore((s) => s.lang);
@@ -42,6 +44,8 @@ export function App() {
       </main>
       <Footer />
       <Overlays />
+      <FileBrowser />
+      <PadKeyboard />
     </div>
   );
 }

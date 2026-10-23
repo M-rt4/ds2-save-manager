@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
-import { open } from '@tauri-apps/plugin-dialog';
+import { getCurrentWindow } from '@tauri-apps/api/window';
 import type { Edition } from '../api';
-import { useStore } from '../store';
+import { choosePath } from '../browse';
+import { usePad } from '../pad';
+import { useHasChanges, useStore } from '../store';
 import { useT, type Key } from '../i18n';
 import { editionName } from '../game';
 import { AboutView } from './AboutView';
@@ -34,8 +36,17 @@ export function SettingsView() {
   const addGameFolder = useStore((s) => s.addGameFolder);
   const removeGameFolder = useStore((s) => s.removeGameFolder);
   const pickGameDir = async () => {
-    const dir = await open({ directory: true, multiple: false });
-    if (typeof dir === 'string') await addGameFolder(dir);
+    const dir = await choosePath({ mode: 'folder' });
+    if (dir) await addGameFolder(dir);
+  };
+
+  // With only a gamepad there is no other way out (the window buttons stay out of its reach).
+  const padMode = usePad((s) => s.active);
+  const padName = usePad((s) => s.name);
+  const changes = useHasChanges();
+  const quit = () => {
+    close(false);
+    useStore.getState().ask(t(changes ? 'pad.quitUnsaved' : 'pad.quitConfirm'), () => void getCurrentWindow().close());
   };
 
   return (
@@ -66,6 +77,25 @@ export function SettingsView() {
                   English
                 </button>
               </div>
+            </div>
+          )}
+          {tab === 'general' && (
+            <div className="setting">
+              <div>
+                <b>{t('pad.detected')}</b>
+                <span>{padName ?? t('pad.none')}</span>
+              </div>
+            </div>
+          )}
+          {tab === 'general' && padMode && (
+            <div className="setting">
+              <div>
+                <b>{t('pad.quit')}</b>
+                <span>{t('pad.quitHint')}</span>
+              </div>
+              <button className="btn" onClick={quit}>
+                {t('pad.quit')}
+              </button>
             </div>
           )}
           {tab === 'transfer' && (

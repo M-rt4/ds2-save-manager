@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { open, save as saveDialog } from '@tauri-apps/plugin-dialog';
+import { choosePath } from '../browse';
 import { api, type ConversionPlan, type ConversionRequest, type Edition, type SaveView, type SlotView } from '../api';
 import { gameDirFor, useStore } from '../store';
 import { errorText, useT } from '../i18n';
@@ -82,12 +82,12 @@ export function TransferTab({ doc }: { doc: SaveView }) {
   const ready = !!plan && !running && !store.gameRunning && !blocked && (kind === 'whole' || singleReady);
 
   const chooseTarget = async () => {
-    const picked = await saveDialog({ defaultPath: targetPath, filters: [{ name: 'Dark Souls II save', extensions: ['sl2'] }] });
+    const picked = await choosePath({ mode: 'save', defaultPath: targetPath, extensions: ['sl2'], filterName: 'Dark Souls II save' });
     if (picked) setTargetPath(picked);
   };
   const chooseGameDir = async () => {
-    const dir = await open({ directory: true, multiple: false, title: editionName(targetEdition) });
-    if (typeof dir === 'string') await store.addGameFolder(dir);
+    const dir = await choosePath({ mode: 'folder', title: editionName(targetEdition) });
+    if (dir) await store.addGameFolder(dir);
   };
 
   const run = () => {
@@ -243,6 +243,8 @@ export function TransferTab({ doc }: { doc: SaveView }) {
               <input
                 className="field text"
                 inputMode="numeric"
+                maxLength={17}
+                autoFocus
                 placeholder="7656119…"
                 value={account}
                 onChange={(e) => setAccount(e.target.value.replace(/\D/g, '').slice(0, 17))}
