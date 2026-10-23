@@ -313,10 +313,11 @@ mod guard_tests {
             assert_eq!(bases.contains(&scratch), from_env.as_ref() == Some(&scratch), "{from_env:?}");
             assert_eq!(bases.iter().filter(|b| **b == system).count(), 1, "{from_env:?}");
         }
+        // Only development builds refuse; under `cargo test --release` the same path is allowed.
         #[cfg(windows)]
         assert_eq!(
-            ensure_writable(&system.join("DarkSoulsII/0110000100000999/DS2SOFS0000.sl2")).unwrap_err().code,
-            "devRealSave"
+            ensure_writable(&system.join("DarkSoulsII/0110000100000999/DS2SOFS0000.sl2")).err().map(|e| e.code),
+            cfg!(debug_assertions).then_some("devRealSave")
         );
     }
 }
