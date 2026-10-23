@@ -2,14 +2,12 @@ import { useEffect, useState } from 'react';
 import { getVersion } from '@tauri-apps/api/app';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { aboutApi } from '../api';
+import { AUTHOR } from '../author';
 import { useStore } from '../store';
 import { useT } from '../i18n';
 import { Bonfire } from './icons';
 
 const win = () => getCurrentWindow();
-
-/** Shown in the title bar at all times, and in the About view. */
-export const AUTHOR = 'Mert';
 
 export function TitleBar() {
   const t = useT();
@@ -37,7 +35,7 @@ export function TitleBar() {
       </span>
       <span className="byline" data-tauri-drag-region>
         {version && <>v{version} · </>}
-        {t('app.byline', { author: AUTHOR })}
+        {t('app.byline', { author: AUTHOR.name })}
       </span>
       {devLabel && (
         <span className="dev-badge" data-tauri-drag-region title="Development copy">

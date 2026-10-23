@@ -2,12 +2,12 @@ import { Fragment, useEffect, useState, version as reactVersion } from 'react';
 import { getTauriVersion, getVersion } from '@tauri-apps/api/app';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { aboutApi, type GameInfo, type InstallSource } from '../api';
+import { AUTHOR } from '../author';
 import { useStore } from '../store';
 import { useT, type Key } from '../i18n';
 import { editionName } from '../game';
 import { Bonfire } from './icons';
 
-const AUTHOR = { label: 'github.com/M-rt4', url: 'https://github.com/M-rt4' };
 const REPO = { label: 'github.com/M-rt4/ds2-save-manager', url: 'https://github.com/M-rt4/ds2-save-manager' };
 
 /** The projects NOTICE credits, with what each one gave. */
@@ -98,7 +98,7 @@ export function AboutView() {
       <div className="kv">
         <div className="k">{t('about.author')}</div>
         <div className="v">
-          Mert · <Link url={AUTHOR.url}>{AUTHOR.label}</Link>
+          {AUTHOR.name} · <Link url={AUTHOR.url}>{AUTHOR.label}</Link>
         </div>
         <div className="k">{t('about.repo')}</div>
         <div className="v">
@@ -129,7 +129,7 @@ export function AboutView() {
       </ul>
       <p className="note">{t('about.assets')}</p>
       <p className="note">{t('about.trademark')}</p>
-      <p className="note">© 2026 Mert</p>
+      <p className="note">© 2026 {AUTHOR.name}</p>
     </div>
   );
 }
